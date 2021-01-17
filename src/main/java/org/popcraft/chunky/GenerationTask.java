@@ -1,15 +1,19 @@
 package org.popcraft.chunky;
 
 import io.papermc.lib.PaperLib;
+import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.popcraft.chunky.iterator.ChunkIterator;
 import org.popcraft.chunky.iterator.ChunkIteratorFactory;
 import org.popcraft.chunky.shape.Shape;
 import org.popcraft.chunky.shape.ShapeFactory;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class GenerationTask implements Runnable {
     private final Chunky chunky;
@@ -24,7 +28,7 @@ public class GenerationTask implements Runnable {
     private final AtomicLong finishedChunks = new AtomicLong();
     private final AtomicLong totalChunks = new AtomicLong();
     private final ConcurrentLinkedQueue<Long> chunkUpdateTimes10Sec = new ConcurrentLinkedQueue<>();
-    private static final int MAX_WORKING = 50;
+    private static final int MAX_WORKING = 48;
 
     public GenerationTask(Chunky chunky, Selection selection, long count, long time) {
         this(chunky, selection);
@@ -91,6 +95,7 @@ public class GenerationTask implements Runnable {
         Thread.currentThread().setName(String.format("Chunky-%s Thread", world.getName()));
         final Semaphore working = new Semaphore(MAX_WORKING);
         startTime.set(System.currentTimeMillis());
+        AtomicReference<Chunk> lastChunk = new AtomicReference<>();
         while (!stopped && chunkIterator.hasNext()) {
             ChunkCoordinate chunkCoord = chunkIterator.next();
             int xChunkCenter = (chunkCoord.x << 4) + 8;
@@ -99,6 +104,20 @@ public class GenerationTask implements Runnable {
                 printUpdate(world, chunkCoord.x, chunkCoord.z);
                 continue;
             }
+
+            if (Runtime.getRuntime().freeMemory() < 1_000_000_000) {
+                chunky.getServer().getConsoleSender().sendMessage("Available mem too low, flushing chunks...");
+                do {
+                    final Chunk finalLastChunk = lastChunk.get();
+                    if (finalLastChunk != null)
+                        CompletableFuture.supplyAsync(finalLastChunk::unload, runnable -> Bukkit.getScheduler().runTask(chunky, runnable)).join();
+                    try {
+                        Thread.sleep(8000);
+                    } catch (InterruptedException ignored) {
+                    }
+                } while (Runtime.getRuntime().freeMemory() < 1_800_000_000);
+                chunky.getServer().getConsoleSender().sendMessage("Continuing...");
+            }
             try {
                 working.acquire();
             } catch (InterruptedException e) {
@@ -106,6 +125,7 @@ public class GenerationTask implements Runnable {
                 break;
             }
             PaperLib.getChunkAtAsync(world, chunkCoord.x, chunkCoord.z).thenAccept(chunk -> {
+                lastChunk.set(chunk);
                 working.release();
                 printUpdate(world, chunk.getX(), chunk.getZ());
             });

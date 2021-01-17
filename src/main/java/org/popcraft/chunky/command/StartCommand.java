@@ -23,11 +23,6 @@ public class StartCommand extends ChunkyCommand {
             String radius = selection.radiusX == selection.radiusZ ? String.valueOf(selection.radiusX) : String.format("%d, %d", selection.radiusX, selection.radiusZ);
             sender.sendMessage(chunky.message("format_start", chunky.message("prefix"), selection.world.getName(), selection.centerX, selection.centerZ, radius));
         };
-        if (chunky.getConfigStorage().loadTask(selection.world).isPresent()) {
-            chunky.setPendingAction(startAction);
-            sender.sendMessage(chunky.message("format_start_confirm", chunky.message("prefix")));
-        } else {
-            startAction.run();
-        }
+        startAction.run();
     }
 }

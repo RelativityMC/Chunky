@@ -47,14 +47,6 @@ public final class Chunky extends JavaPlugin {
         if (metrics.isEnabled()) {
             metrics.addCustomChart(new Metrics.SimplePie("language", () -> getConfig().getString("language", "en")));
         }
-        Version currentVersion = Version.getCurrentMinecraftVersion();
-        if (Version.v1_13_2.isEqualTo(currentVersion) && !PaperLib.isPaper()) {
-            this.getLogger().severe(message("error_version_spigot"));
-            this.getServer().getPluginManager().disablePlugin(this);
-        } else if (Version.v1_13_2.isHigherThan(currentVersion)) {
-            this.getLogger().severe(message("error_version"));
-            this.getServer().getPluginManager().disablePlugin(this);
-        }
         if (this.getConfig().getBoolean("continue-on-restart", false)) {
             commands.get("continue").execute(getServer().getConsoleSender(), new String[]{});
         }
