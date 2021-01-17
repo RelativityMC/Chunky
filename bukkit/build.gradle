@@ -1,0 +1,59 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '6.1.0'
+}
+
+repositories {
+    maven {
+        url 'https://hub.spigotmc.org/nexus/content/repositories/snapshots'
+    }
+    maven {
+        url 'https://papermc.io/repo/repository/maven-public'
+    }
+}
+
+dependencies {
+    implementation project(':common')
+
+    compileOnly 'org.spigotmc:spigot-api:1.16.4-R0.1-SNAPSHOT'
+    implementation 'io.papermc:paperlib:1.0.6'
+}
+
+processResources {
+    from(sourceSets.main.resources.srcDirs) {
+        expand 'projectVersion': project.ext.fullVersion
+        include 'plugin.yml'
+    }
+}
+
+shadowJar {
+    archiveFileName = "Chunky-${project.ext.fullVersion}.jar"
+
+    relocate 'io.papermc.lib', 'org.popcraft.chunky.lib.paperlib'
+}
+
+artifacts {
+    archives shadowJar
+}
+
+publishing {
+    repositories {
+        if (project.hasProperty('mavenUsername') && project.hasProperty('mavenPassword'))
+            maven {
+                credentials {
+                    username = project.mavenUsername
+                    password = project.mavenPassword
+                }
+                def releasesRepoUrl = 'https://repo.codemc.io/repository/maven-releases/'
+                def snapshotsRepoUrl = 'https://repo.codemc.io/repository/maven-snapshots/'
+                url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            }
+    }
+    publications {
+        maven(MavenPublication) {
+            groupId = 'org.popcraft'
+            artifactId = 'chunky-bukkit'
+            version = project.ext.fullVersion
+            from components.java
+        }
+    }
+}

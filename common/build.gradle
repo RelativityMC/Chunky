@@ -1,0 +1,38 @@
+repositories {
+    maven {
+        url 'https://repo.mikeprimm.com'
+    }
+    maven {
+        url 'https://jitpack.io'
+    }
+}
+
+dependencies {
+    testImplementation 'junit:junit:4.13.1'
+    compileOnly 'us.dynmap:dynmap-api:3.0'
+    compileOnly 'com.github.BlueMap-Minecraft:BlueMapAPI:v1.1.0'
+    compileOnly 'com.github.Brettflan:WorldBorder:c0d1772418'
+}
+
+publishing {
+    repositories {
+        if (project.hasProperty('mavenUsername') && project.hasProperty('mavenPassword'))
+            maven {
+                credentials {
+                    username = project.mavenUsername
+                    password = project.mavenPassword
+                }
+                def releasesRepoUrl = 'https://repo.codemc.io/repository/maven-releases/'
+                def snapshotsRepoUrl = 'https://repo.codemc.io/repository/maven-snapshots/'
+                url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+            }
+    }
+    publications {
+        maven(MavenPublication) {
+            groupId = 'org.popcraft'
+            artifactId = 'chunky-common'
+            version = project.ext.fullVersion
+            from components.java
+        }
+    }
+}
