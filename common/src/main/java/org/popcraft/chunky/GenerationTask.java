@@ -97,7 +97,6 @@ public class GenerationTask implements Runnable {
         Thread.currentThread().setName(String.format("Chunky-%s Thread", world.getName()));
         final Semaphore working = new Semaphore(MAX_WORKING);
         startTime.set(System.currentTimeMillis());
-        AtomicReference<Chunk> lastChunk = new AtomicReference<>();
         while (!stopped && chunkIterator.hasNext()) {
             final ChunkCoordinate chunkCoord = chunkIterator.next();
             int xChunkCenter = (chunkCoord.x << 4) + 8;
@@ -108,17 +107,14 @@ public class GenerationTask implements Runnable {
             }
 
             if (Runtime.getRuntime().freeMemory() < 1_000_000_000) {
-                chunky.getServer().getConsoleSender().sendMessage("Available mem too low, flushing chunks...");
+                chunky.getPlatform().getServer().getConsoleSender().sendMessage("Available mem too low, waiting...");
                 do {
-                    final Chunk finalLastChunk = lastChunk.get();
-                    if (finalLastChunk != null)
-                        CompletableFuture.supplyAsync(finalLastChunk::unload, runnable -> Bukkit.getScheduler().runTask(chunky, runnable)).join();
                     try {
                         Thread.sleep(8000);
                     } catch (InterruptedException ignored) {
                     }
                 } while (Runtime.getRuntime().freeMemory() < 1_800_000_000);
-                chunky.getServer().getConsoleSender().sendMessage("Continuing...");
+                chunky.getPlatform().getServer().getConsoleSender().sendMessage("Continuing...");
             }
             try {
                 working.acquire();
@@ -127,7 +123,6 @@ public class GenerationTask implements Runnable {
                 break;
             }
             world.getChunkAtAsync(chunkCoord.x, chunkCoord.z).thenRun(() -> {
-                lastChunk.set(chunk);
                 working.release();
                 printUpdate(world, chunkCoord.x, chunkCoord.z);
             });
