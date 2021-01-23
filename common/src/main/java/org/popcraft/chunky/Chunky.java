@@ -71,7 +71,7 @@ public class Chunky {
     }
 
     public static String translate(String key, Object... args) {
-        String message = translations.getOrDefault(key, fallbackTranslations.getOrDefault(key, "Missing translation"));
+        String message = translations.getOrDefault(key, fallbackTranslations.getOrDefault(key, "Missing translation: " + key));
         return String.format(message, args);
     }
 
