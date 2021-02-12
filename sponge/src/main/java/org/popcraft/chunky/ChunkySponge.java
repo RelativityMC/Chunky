@@ -3,6 +3,7 @@ package org.popcraft.chunky;
 import com.google.inject.Inject;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
+import org.bstats.sponge.Metrics2;
 import org.popcraft.chunky.command.ChunkyCommand;
 import org.popcraft.chunky.platform.SpongeConfig;
 import org.popcraft.chunky.platform.SpongePlatform;
@@ -20,6 +21,7 @@ import org.spongepowered.api.config.ConfigDir;
 import org.spongepowered.api.config.DefaultConfig;
 import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.game.state.GameStartedServerEvent;
+import org.spongepowered.api.event.game.state.GameStoppingEvent;
 import org.spongepowered.api.plugin.Plugin;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.world.storage.WorldProperties;
@@ -53,6 +55,11 @@ public class ChunkySponge {
     @DefaultConfig(sharedRoot = true)
     private ConfigurationLoader<CommentedConfigurationNode> configManager;
 
+    @Inject
+    public ChunkySponge(Metrics2.Factory metricsFactory) {
+        metricsFactory.make(9825);
+    }
+
     @Listener
     public void onServerStart(GameStartedServerEvent event) {
         this.chunky = new Chunky(new SpongePlatform(this));
@@ -67,7 +74,14 @@ public class ChunkySponge {
         chunky.loadCommands();
         CommandSpec cancelCommand = CommandSpec.builder()
                 .permission("chunky.command.cancel")
-                .executor(noArgsCommand("cancel"))
+                .arguments(GenericArguments.optional(GenericArguments.world(Text.of("world"))))
+                .executor((CommandSource source, CommandContext context) -> {
+                    ChunkyCommand cmd = chunky.getCommands().get("cancel");
+                    final List<String> args = new ArrayList<>(Collections.singletonList("cancel"));
+                    context.<WorldProperties>getOne(Text.of("world")).map(WorldProperties::getWorldName).ifPresent(args::add);
+                    cmd.execute(new SpongeSender(source), args.toArray(new String[0]));
+                    return CommandResult.success();
+                })
                 .build();
         CommandSpec centerCommand = CommandSpec.builder()
                 .permission("chunky.command.center")
@@ -90,7 +104,14 @@ public class ChunkySponge {
                 .build();
         CommandSpec continueCommand = CommandSpec.builder()
                 .permission("chunky.command.continue")
-                .executor(noArgsCommand("continue"))
+                .arguments(GenericArguments.optional(GenericArguments.world(Text.of("world"))))
+                .executor((CommandSource source, CommandContext context) -> {
+                    ChunkyCommand cmd = chunky.getCommands().get("continue");
+                    final List<String> args = new ArrayList<>(Collections.singletonList("continue"));
+                    context.<WorldProperties>getOne(Text.of("world")).map(WorldProperties::getWorldName).ifPresent(args::add);
+                    cmd.execute(new SpongeSender(source), args.toArray(new String[0]));
+                    return CommandResult.success();
+                })
                 .build();
         CommandSpec cornersCommand = CommandSpec.builder()
                 .permission("chunky.command.corners")
@@ -111,6 +132,10 @@ public class ChunkySponge {
                     });
                     return CommandResult.success();
                 })
+                .build();
+        CommandSpec deleteCommand = CommandSpec.builder()
+                .permission("chunky.command.delete")
+                .executor(noArgsCommand("delete"))
                 .build();
         CommandSpec helpCommand = CommandSpec.builder()
                 .permission("chunky.command.help")
@@ -138,7 +163,14 @@ public class ChunkySponge {
                 .build();
         CommandSpec pauseCommand = CommandSpec.builder()
                 .permission("chunky.command.pause")
-                .executor(noArgsCommand("pause"))
+                .arguments(GenericArguments.optional(GenericArguments.world(Text.of("world"))))
+                .executor((CommandSource source, CommandContext context) -> {
+                    ChunkyCommand cmd = chunky.getCommands().get("pause");
+                    final List<String> args = new ArrayList<>(Collections.singletonList("pause"));
+                    context.<WorldProperties>getOne(Text.of("world")).map(WorldProperties::getWorldName).ifPresent(args::add);
+                    cmd.execute(new SpongeSender(source), args.toArray(new String[0]));
+                    return CommandResult.success();
+                })
                 .build();
         CommandSpec quietCommand = CommandSpec.builder()
                 .permission("chunky.command.quiet")
@@ -191,7 +223,25 @@ public class ChunkySponge {
                 .build();
         CommandSpec startCommand = CommandSpec.builder()
                 .permission("chunky.command.start")
-                .executor(noArgsCommand("start"))
+                .arguments(
+                        GenericArguments.optional(GenericArguments.world(Text.of("world"))),
+                        GenericArguments.optional(GenericArguments.string(Text.of("shape"))),
+                        GenericArguments.optional(GenericArguments.integer(Text.of("centerX"))),
+                        GenericArguments.optional(GenericArguments.integer(Text.of("centerZ"))),
+                        GenericArguments.optional(GenericArguments.integer(Text.of("radiusX"))),
+                        GenericArguments.optional(GenericArguments.integer(Text.of("radiusZ"))))
+                .executor((CommandSource source, CommandContext context) -> {
+                    ChunkyCommand cmd = chunky.getCommands().get("start");
+                    final List<String> args = new ArrayList<>(Collections.singletonList("start"));
+                    context.<WorldProperties>getOne(Text.of("world")).map(WorldProperties::getWorldName).ifPresent(args::add);
+                    context.<String>getOne(Text.of("shape")).ifPresent(args::add);
+                    context.<Integer>getOne(Text.of("centerX")).map(String::valueOf).ifPresent(args::add);
+                    context.<Integer>getOne(Text.of("centerZ")).map(String::valueOf).ifPresent(args::add);
+                    context.<Integer>getOne(Text.of("radiusX")).map(String::valueOf).ifPresent(args::add);
+                    context.<Integer>getOne(Text.of("radiusZ")).map(String::valueOf).ifPresent(args::add);
+                    cmd.execute(new SpongeSender(source), args.toArray(new String[0]));
+                    return CommandResult.success();
+                })
                 .build();
         CommandSpec worldborderCommand = CommandSpec.builder()
                 .permission("chunky.command.worldborder")
@@ -218,6 +268,7 @@ public class ChunkySponge {
                 .child(confirmCommand, "confirm")
                 .child(continueCommand, "continue")
                 .child(cornersCommand, "corners")
+                .child(deleteCommand, "delete")
                 .child(helpCommand, "help")
                 .child(patternCommand, "pattern")
                 .child(pauseCommand, "pause")
@@ -232,6 +283,13 @@ public class ChunkySponge {
                 .child(worldCommand, "world")
                 .executor(noArgsCommand("help"))
                 .build(), "chunky");
+    }
+
+    @Listener
+    public void onServerStop(GameStoppingEvent event) {
+        chunky.getConfig().saveTasks();
+        chunky.getGenerationTasks().values().forEach(generationTask -> generationTask.stop(false));
+        chunky.getPlatform().getServer().getScheduler().cancelTasks();
     }
 
     private CommandExecutor noArgsCommand(final String name) {
