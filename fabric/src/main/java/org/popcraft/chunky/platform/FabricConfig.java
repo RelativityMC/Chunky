@@ -7,6 +7,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import org.popcraft.chunky.Chunky;
 import org.popcraft.chunky.GenerationTask;
 import org.popcraft.chunky.Selection;
+import org.popcraft.chunky.util.Input;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,17 +61,16 @@ public class FabricConfig implements Config {
         if (taskModel == null || taskModel.cancelled) {
             return Optional.empty();
         }
-        Selection selection = new Selection(chunky);
-        selection.world = world;
-        selection.radiusX = taskModel.radius;
-        selection.radiusZ = taskModel.radiusZ == null ? taskModel.radius : taskModel.radiusZ;
-        selection.centerX = taskModel.centerX;
-        selection.centerZ = taskModel.centerZ;
-        selection.pattern = taskModel.iterator;
-        selection.shape = taskModel.shape;
+        Selection.Builder selection = Selection.builder(world)
+                .centerX(taskModel.centerX)
+                .centerZ(taskModel.centerZ)
+                .radiusX(taskModel.radius)
+                .radiusZ(taskModel.radiusZ == null ? taskModel.radius : taskModel.radiusZ)
+                .pattern(taskModel.iterator)
+                .shape(taskModel.shape);
         long count = taskModel.count;
         long time = taskModel.time;
-        return Optional.of(new GenerationTask(chunky, selection, count, time));
+        return Optional.of(new GenerationTask(chunky, selection.build(), count, time));
     }
 
     @Override
@@ -89,20 +89,21 @@ public class FabricConfig implements Config {
             this.configModel.tasks = new HashMap<>();
         }
         Map<String, TaskModel> tasks = this.configModel.tasks;
-        TaskModel taskModel = tasks.getOrDefault(generationTask.getWorld().getName(), new TaskModel());
+        Selection selection = generationTask.getSelection();
+        TaskModel taskModel = tasks.getOrDefault(selection.world().getName(), new TaskModel());
         String shape = generationTask.getShape().name();
         taskModel.cancelled = generationTask.isCancelled();
-        taskModel.radius = generationTask.getRadiusX();
+        taskModel.radius = selection.radiusX();
         if ("rectangle".equals(shape) || "oval".equals(shape)) {
-            taskModel.radiusZ = generationTask.getRadiusZ();
+            taskModel.radiusZ = selection.radiusZ();
         }
-        taskModel.centerX = generationTask.getCenterX();
-        taskModel.centerZ = generationTask.getCenterZ();
+        taskModel.centerX = selection.centerX();
+        taskModel.centerZ = selection.centerZ();
         taskModel.iterator = generationTask.getChunkIterator().name();
         taskModel.shape = shape;
         taskModel.count = generationTask.getCount();
         taskModel.time = generationTask.getTotalTime();
-        tasks.put(generationTask.getWorld().getName(), taskModel);
+        tasks.put(selection.world().getName(), taskModel);
         saveConfig();
     }
 
@@ -125,6 +126,21 @@ public class FabricConfig implements Config {
             generationTask.stop(true);
             saveTask(generationTask);
         });
+    }
+
+    @Override
+    public int getVersion() {
+        return this.configModel.version == null ? 0 : this.configModel.version;
+    }
+
+    @Override
+    public String getLanguage() {
+        return Input.checkLanguage(this.configModel.language);
+    }
+
+    @Override
+    public boolean getContinueOnRestart() {
+        return this.configModel.continueOnRestart == null ? false : this.configModel.continueOnRestart;
     }
 
     @Override
@@ -153,21 +169,21 @@ public class FabricConfig implements Config {
     }
 
     public static class ConfigModel {
-        public int version;
+        public Integer version;
         public String language;
-        public boolean continueOnRestart;
+        public Boolean continueOnRestart;
         public Map<String, TaskModel> tasks;
     }
 
     public static class TaskModel {
-        public boolean cancelled;
-        public int radius;
+        public Boolean cancelled;
+        public Integer radius;
         public Integer radiusZ;
-        public int centerX;
-        public int centerZ;
+        public Integer centerX;
+        public Integer centerZ;
         public String iterator;
         public String shape;
-        public long count;
-        public long time;
+        public Long count;
+        public Long time;
     }
 }
