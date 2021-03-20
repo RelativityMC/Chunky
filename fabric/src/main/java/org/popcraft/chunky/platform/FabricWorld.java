@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 public class FabricWorld implements World {
     private ServerWorld serverWorld;
@@ -41,17 +42,19 @@ public class FabricWorld implements World {
     @Override
     public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         if (Thread.currentThread() != serverWorld.getServer().getThread()) {
-            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), serverWorld.getServer()).join();
+            return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), serverWorld.getServer()).thenCompose(Function.identity());
         } else {
             final CompletableFuture<Void> chunkFuture = new CompletableFuture<>();
             final ChunkPos chunkPos = new ChunkPos(x, z);
             serverWorld.getChunkManager().addTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            ((ServerChunkManagerMixin) serverWorld.getChunkManager()).tick();
+            ((ServerChunkManagerMixin) serverWorld.getChunkManager()).ITick();
             ThreadedAnvilChunkStorage threadedAnvilChunkStorage = serverWorld.getChunkManager().threadedAnvilChunkStorage;
             ThreadedAnvilChunkStorageMixin threadedAnvilChunkStorageMixin = (ThreadedAnvilChunkStorageMixin) threadedAnvilChunkStorage;
-            ChunkHolder chunkHolder = threadedAnvilChunkStorageMixin.getChunkHolder(chunkPos.toLong());
+            ChunkHolder chunkHolder = threadedAnvilChunkStorageMixin.IGetChunkHolder(chunkPos.toLong());
             if (chunkHolder == null) {
+                System.err.println("null chunkholder");
                 chunkFuture.complete(null);
+                serverWorld.getChunkManager().removeTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
             } else {
                 threadedAnvilChunkStorage.getChunk(chunkHolder, ChunkStatus.FULL).thenAcceptAsync(either -> {
                     chunkFuture.complete(null);

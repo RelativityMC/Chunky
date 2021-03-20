@@ -11,7 +11,7 @@ import java.io.File;
 @Mixin(ThreadedAnvilChunkStorage.class)
 public interface ThreadedAnvilChunkStorageMixin {
     @Invoker("getChunkHolder")
-    public ChunkHolder getChunkHolder(long pos);
+    public ChunkHolder IGetChunkHolder(long pos);
 
     @Accessor("saveDir")
     public File getSaveDir();

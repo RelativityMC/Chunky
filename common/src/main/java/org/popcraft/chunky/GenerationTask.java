@@ -31,7 +31,7 @@ public class GenerationTask implements Runnable {
     private final AtomicLong finishedChunks = new AtomicLong();
     private final AtomicLong totalChunks = new AtomicLong();
     private final ConcurrentLinkedQueue<Long> chunkUpdateTimes10Sec = new ConcurrentLinkedQueue<>();
-    private static final int MAX_WORKING = 48;
+    private static final int MAX_WORKING = 1024;
 
     public GenerationTask(Chunky chunky, Selection selection, long count, long time) {
         this(chunky, selection);
@@ -106,7 +106,7 @@ public class GenerationTask implements Runnable {
                 continue;
             }
 
-            if (Runtime.getRuntime().freeMemory() < 1_000_000_000) {
+            if ((Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())) < 1_000_000_000) {
                 chunky.getPlatform().getServer().getConsoleSender().sendMessage("Available mem too low, waiting...");
                 boolean executed = false;
                 do {
@@ -119,7 +119,7 @@ public class GenerationTask implements Runnable {
                     } catch (InterruptedException ignored) {
                     }
                     executed = true;
-                } while (Runtime.getRuntime().freeMemory() < 1_800_000_000);
+                } while ((Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())) < 1_800_000_000);
                 chunky.getPlatform().getServer().getConsoleSender().sendMessage("Continuing...");
             }
             try {
