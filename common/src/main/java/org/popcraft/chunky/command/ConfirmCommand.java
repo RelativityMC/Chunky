@@ -3,7 +3,7 @@ package org.popcraft.chunky.command;
 import org.popcraft.chunky.Chunky;
 import org.popcraft.chunky.platform.Sender;
 
-import static org.popcraft.chunky.Chunky.translate;
+import java.util.Optional;
 
 public class ConfirmCommand extends ChunkyCommand {
     public ConfirmCommand(Chunky chunky) {
@@ -12,12 +12,11 @@ public class ConfirmCommand extends ChunkyCommand {
 
     @Override
     public void execute(Sender sender, String[] args) {
-        Runnable pendingAction = chunky.getPendingAction();
-        if (pendingAction == null) {
-            sender.sendMessage("format_confirm", translate("prefix"));
+        Optional<Runnable> pendingAction = chunky.getPendingAction(sender);
+        if (!pendingAction.isPresent()) {
+            sender.sendMessagePrefixed("format_confirm");
             return;
         }
-        chunky.setPendingAction(null);
-        pendingAction.run();
+        pendingAction.get().run();
     }
 }

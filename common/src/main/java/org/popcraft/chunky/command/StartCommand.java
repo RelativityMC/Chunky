@@ -5,16 +5,16 @@ import org.popcraft.chunky.GenerationTask;
 import org.popcraft.chunky.Selection;
 import org.popcraft.chunky.platform.Sender;
 import org.popcraft.chunky.platform.World;
-import org.popcraft.chunky.util.Disk;
 import org.popcraft.chunky.util.Formatting;
 import org.popcraft.chunky.util.Input;
+import org.popcraft.chunky.util.Limit;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.popcraft.chunky.Chunky.translate;
+import static org.popcraft.chunky.util.Translator.translate;
 
 public class StartCommand extends ChunkyCommand {
     public StartCommand(Chunky chunky) {
@@ -44,14 +44,14 @@ public class StartCommand extends ChunkyCommand {
             Optional<Double> centerX = Input.tryDoubleSuffixed(args[3]).filter(cx -> !Input.isPastWorldLimit(cx));
             Optional<Double> centerZ = Input.tryDoubleSuffixed(args.length > 4 ? args[4] : null).filter(cz -> !Input.isPastWorldLimit(cz));
             if (centerX.isPresent() && centerZ.isPresent()) {
-                chunky.getSelection().center(centerX.get().intValue(), centerZ.get().intValue());
+                chunky.getSelection().center(centerX.get(), centerZ.get());
             } else {
                 sender.sendMessage("help_start");
                 return;
             }
         }
         if (args.length > 5) {
-            Optional<Integer> radiusX = Input.tryIntegerSuffixed(args[5]).filter(rx -> rx >= 0 && !Input.isPastWorldLimit(rx));
+            Optional<Double> radiusX = Input.tryDoubleSuffixed(args[5]).filter(rx -> rx >= 0 && !Input.isPastWorldLimit(rx));
             if (radiusX.isPresent()) {
                 chunky.getSelection().radius(radiusX.get());
             } else {
@@ -60,7 +60,7 @@ public class StartCommand extends ChunkyCommand {
             }
         }
         if (args.length > 6) {
-            Optional<Integer> radiusZ = Input.tryIntegerSuffixed(args[6]).filter(rz -> rz >= 0 && !Input.isPastWorldLimit(rz));
+            Optional<Double> radiusZ = Input.tryDoubleSuffixed(args[6]).filter(rz -> rz >= 0 && !Input.isPastWorldLimit(rz));
             if (radiusZ.isPresent()) {
                 chunky.getSelection().radiusZ(radiusZ.get());
             } else {
@@ -70,15 +70,18 @@ public class StartCommand extends ChunkyCommand {
         }
         final Selection current = chunky.getSelection().build();
         if (chunky.getGenerationTasks().containsKey(current.world())) {
-            sender.sendMessage("format_started_already", translate("prefix"), current.world().getName());
+            sender.sendMessagePrefixed("format_started_already", current.world().getName());
+            return;
+        }
+        if (current.radiusX() > Limit.get()) {
+            sender.sendMessagePrefixed("format_start_limit", Formatting.number(Limit.get()));
             return;
         }
         final Runnable startAction = () -> {
             GenerationTask generationTask = new GenerationTask(chunky, current);
             chunky.getGenerationTasks().put(current.world(), generationTask);
             chunky.getPlatform().getServer().getScheduler().runTaskAsync(generationTask);
-            String radius = current.radiusX() == current.radiusZ() ? String.valueOf(current.radiusX()) : String.format("%d, %d", current.radiusX(), current.radiusZ());
-            sender.sendMessage("format_start", translate("prefix"), current.world().getName(), current.centerX(), current.centerZ(), radius);
+            sender.sendMessagePrefixed("format_start", current.world().getName(), translate("shape_" + current.shape()), Formatting.number(current.centerX()), Formatting.number(current.centerZ()), Formatting.radius(current));
         };
         startAction.run();
     }

@@ -1,9 +1,8 @@
 package org.popcraft.chunky.command;
 
 import org.popcraft.chunky.Chunky;
+import org.popcraft.chunky.platform.Config;
 import org.popcraft.chunky.platform.Sender;
-
-import static org.popcraft.chunky.Chunky.translate;
 
 public class ReloadCommand extends ChunkyCommand {
     public ReloadCommand(Chunky chunky) {
@@ -13,10 +12,12 @@ public class ReloadCommand extends ChunkyCommand {
     @Override
     public void execute(Sender sender, String[] args) {
         if (chunky.getGenerationTasks().size() > 0) {
-            sender.sendMessage("format_reload_tasks_running", translate("prefix"));
+            sender.sendMessagePrefixed("format_reload_tasks_running");
             return;
         }
-        chunky.getPlatform().getServer().getConfig().reload();
-        sender.sendMessage("format_reload", translate("prefix"));
+        Config config = chunky.getPlatform().getServer().getConfig();
+        config.reload();
+        chunky.setLanguage(config.getLanguage());
+        sender.sendMessagePrefixed("format_reload");
     }
 }

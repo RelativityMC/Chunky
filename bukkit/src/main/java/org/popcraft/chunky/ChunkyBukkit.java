@@ -12,17 +12,17 @@ import org.popcraft.chunky.platform.BukkitPlatform;
 import org.popcraft.chunky.platform.BukkitSender;
 import org.popcraft.chunky.platform.Platform;
 import org.popcraft.chunky.platform.Sender;
+import org.popcraft.chunky.util.Limit;
 import org.popcraft.chunky.util.Metrics;
 import org.popcraft.chunky.util.Version;
 
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static org.popcraft.chunky.Chunky.translate;
+import static org.popcraft.chunky.util.Translator.translate;
 
 public final class ChunkyBukkit extends JavaPlugin {
     private Chunky chunky;
@@ -31,11 +31,9 @@ public final class ChunkyBukkit extends JavaPlugin {
     public void onEnable() {
         this.chunky = new Chunky(new BukkitPlatform(this));
         chunky.setConfig(new BukkitConfig(chunky, this));
-        InputStream configLanguage = getResource("lang/" + chunky.getConfig().getLanguage() + ".json");
-        InputStream defaultLanguage = getResource("lang/en.json");
-        chunky.setTranslations(chunky.loadTranslation(configLanguage));
-        chunky.setFallbackTranslations(chunky.loadTranslation(defaultLanguage));
+        chunky.setLanguage(chunky.getConfig().getLanguage());
         chunky.loadCommands();
+        Limit.set(chunky.getConfig());
         Version currentVersion = Version.getCurrentMinecraftVersion();
         if (Version.v1_13_2.isEqualTo(currentVersion) && !PaperLib.isPaper()) {
             this.getLogger().severe(translate("error_version_spigot"));
@@ -46,7 +44,7 @@ public final class ChunkyBukkit extends JavaPlugin {
         }
         Platform platform = chunky.getPlatform();
         if (chunky.getConfig().getContinueOnRestart()) {
-            chunky.getCommands().get("continue").execute(platform.getServer().getConsoleSender(), new String[]{});
+            getServer().getScheduler().scheduleSyncDelayedTask(this, () -> chunky.getCommands().get("continue").execute(platform.getServer().getConsoleSender(), new String[]{}));
         }
         if (getServer().getPluginManager().getPlugin("WorldBorder") != null) {
             platform.getServer().getIntegrations().put("border", new WorldBorderIntegration());

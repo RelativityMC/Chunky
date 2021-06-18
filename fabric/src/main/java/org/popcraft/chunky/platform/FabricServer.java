@@ -7,6 +7,7 @@ import net.minecraft.util.registry.Registry;
 import net.minecraft.util.registry.RegistryKey;
 import org.popcraft.chunky.ChunkyFabric;
 import org.popcraft.chunky.integration.Integration;
+import org.popcraft.chunky.platform.impl.SimpleScheduler;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,7 +23,7 @@ public class FabricServer implements Server {
     public FabricServer(ChunkyFabric plugin, MinecraftServer server) {
         this.plugin = plugin;
         this.server = server;
-        this.scheduler = new FabricScheduler();
+        this.scheduler = new SimpleScheduler();
     }
 
     @Override
@@ -36,7 +37,7 @@ public class FabricServer implements Server {
         if (worldIdentifier == null) {
             return Optional.empty();
         }
-        ServerWorld serverWorld = server.getWorld(RegistryKey.of(Registry.DIMENSION, worldIdentifier));
+        ServerWorld serverWorld = server.getWorld(RegistryKey.of(Registry.WORLD_KEY, worldIdentifier));
         if (serverWorld == null) {
             return Optional.empty();
         }

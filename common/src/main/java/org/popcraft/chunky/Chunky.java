@@ -1,31 +1,26 @@
 package org.popcraft.chunky;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import org.popcraft.chunky.command.*;
 import org.popcraft.chunky.platform.Config;
 import org.popcraft.chunky.platform.Platform;
+import org.popcraft.chunky.platform.Sender;
 import org.popcraft.chunky.platform.World;
+import org.popcraft.chunky.util.PendingAction;
+import org.popcraft.chunky.util.Translator;
 
-import java.io.BufferedReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Chunky {
-    private static Map<String, String> translations = Collections.emptyMap();
-    private static Map<String, String> fallbackTranslations = Collections.emptyMap();
     private Platform platform;
     private Config config;
     private Map<World, GenerationTask> generationTasks;
     private Map<String, ChunkyCommand> commands;
     private Selection.Builder selection;
     private Options options;
-    private Runnable pendingAction;
+    private final Map<String, PendingAction> pendingActions = new HashMap<>();
 
     public Chunky(Platform platform) {
         this.platform = platform;
@@ -41,7 +36,6 @@ public class Chunky {
         commands.put("confirm", new ConfirmCommand(this));
         commands.put("continue", new ContinueCommand(this));
         commands.put("corners", new CornersCommand(this));
-        commands.put("delete", new DeleteCommand(this));
         commands.put("help", new HelpCommand(this));
         commands.put("pattern", new PatternCommand(this));
         commands.put("pause", new PauseCommand(this));
@@ -52,30 +46,10 @@ public class Chunky {
         commands.put("silent", new SilentCommand(this));
         commands.put("spawn", new SpawnCommand(this));
         commands.put("start", new StartCommand(this));
+        commands.put("trim", new TrimCommand(this));
         commands.put("worldborder", new WorldBorderCommand(this));
         commands.put("world", new WorldCommand(this));
         this.commands = commands;
-    }
-
-    public Map<String, String> loadTranslation(InputStream input) {
-        if (input != null) {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
-                StringBuilder lang = new StringBuilder();
-                String s;
-                while ((s = reader.readLine()) != null) {
-                    lang.append(s);
-                }
-                return new Gson().fromJson(lang.toString(), new TypeToken<HashMap<String, String>>() {
-                }.getType());
-            } catch (Exception ignored) {
-            }
-        }
-        return Collections.emptyMap();
-    }
-
-    public static String translate(String key, Object... args) {
-        String message = translations.getOrDefault(key, fallbackTranslations.getOrDefault(key, "Missing translation: " + key));
-        return String.format(message, args);
     }
 
     public Platform getPlatform() {
@@ -94,14 +68,6 @@ public class Chunky {
         return generationTasks;
     }
 
-    public void setTranslations(Map<String, String> translations) {
-        Chunky.translations = translations;
-    }
-
-    public void setFallbackTranslations(Map<String, String> fallbackTranslations) {
-        Chunky.fallbackTranslations = fallbackTranslations;
-    }
-
     public Map<String, ChunkyCommand> getCommands() {
         return commands;
     }
@@ -114,11 +80,17 @@ public class Chunky {
         return options;
     }
 
-    public Runnable getPendingAction() {
-        return pendingAction;
+    public Optional<Runnable> getPendingAction(Sender sender) {
+        pendingActions.values().removeIf(PendingAction::hasExpired);
+        PendingAction pendingAction = pendingActions.remove(sender.getName());
+        return Optional.ofNullable(pendingAction).map(PendingAction::getAction);
     }
 
-    public void setPendingAction(Runnable pendingAction) {
-        this.pendingAction = pendingAction;
+    public void setPendingAction(Sender sender, Runnable action) {
+        pendingActions.put(sender.getName(), new PendingAction(action));
+    }
+
+    public void setLanguage(String language) {
+        Translator.setLanguage(language);
     }
 }

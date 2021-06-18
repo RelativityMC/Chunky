@@ -1,5 +1,6 @@
 package org.popcraft.chunky.platform;
 
+import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ChunkHolder;
 import net.minecraft.server.world.ChunkTicketType;
 import net.minecraft.server.world.ServerWorld;
@@ -89,8 +90,25 @@ public class FabricWorld implements World {
     }
 
     @Override
+    public Optional<Path> getEntitiesDirectory() {
+        return getDirectory("entities");
+    }
+
+    @Override
+    public Optional<Path> getPOIDirectory() {
+        return getDirectory("poi");
+    }
+
+    @Override
     public Optional<Path> getRegionDirectory() {
-        Path regionDirectory = ((ThreadedAnvilChunkStorageMixin) serverWorld.getChunkManager().threadedAnvilChunkStorage).getSaveDir().toPath().resolve("region");
+        return getDirectory("region");
+    }
+
+    private Optional<Path> getDirectory(final String name) {
+        if (name == null) {
+            return Optional.empty();
+        }
+        Path regionDirectory = ((ThreadedAnvilChunkStorageMixin) serverWorld.getChunkManager().threadedAnvilChunkStorage).getSaveDir().toPath().resolve(name);
         return Files.exists(regionDirectory) ? Optional.of(regionDirectory) : Optional.empty();
     }
 

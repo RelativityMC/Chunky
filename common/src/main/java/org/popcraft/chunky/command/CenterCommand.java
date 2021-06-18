@@ -2,11 +2,11 @@ package org.popcraft.chunky.command;
 
 import org.popcraft.chunky.Chunky;
 import org.popcraft.chunky.platform.Sender;
+import org.popcraft.chunky.util.Coordinate;
+import org.popcraft.chunky.util.Formatting;
 import org.popcraft.chunky.util.Input;
 
 import java.util.Optional;
-
-import static org.popcraft.chunky.Chunky.translate;
 
 public class CenterCommand extends ChunkyCommand {
     public CenterCommand(Chunky chunky) {
@@ -22,17 +22,24 @@ public class CenterCommand extends ChunkyCommand {
         if (args.length > 2) {
             newZ = Input.tryDoubleSuffixed(args[2]);
         }
-        if (!newX.isPresent() || !newZ.isPresent()) {
+        final double centerX;
+        final double centerZ;
+        if (!newX.isPresent() && !newZ.isPresent()) {
+            Coordinate coordinate = sender.getCoordinate();
+            centerX = coordinate.getX();
+            centerZ = coordinate.getZ();
+        } else if (newX.isPresent() && newZ.isPresent()) {
+            centerX = newX.get();
+            centerZ = newZ.get();
+        } else {
             sender.sendMessage("help_center");
             return;
         }
-        if (Input.isPastWorldLimit(newX.get()) || Input.isPastWorldLimit(newZ.get())) {
+        if (Input.isPastWorldLimit(centerX) || Input.isPastWorldLimit(centerZ)) {
             sender.sendMessage("help_center");
             return;
         }
-        int centerX = newX.get().intValue();
-        int centerZ = newZ.get().intValue();
         chunky.getSelection().center(centerX, centerZ);
-        sender.sendMessage("format_center", translate("prefix"), centerX, centerZ);
+        sender.sendMessagePrefixed("format_center", Formatting.number(centerX), Formatting.number(centerZ));
     }
 }

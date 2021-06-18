@@ -16,8 +16,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.popcraft.chunky.Chunky.translate;
-
 public class GenerationTask implements Runnable {
     private final Chunky chunky;
     private final Selection selection;
@@ -77,13 +75,13 @@ public class GenerationTask implements Runnable {
             long totalHours = total / 3600;
             long totalMinutes = (total - totalHours * 3600) / 60;
             long totalSeconds = total - totalHours * 3600 - totalMinutes * 60;
-            console.sendMessage("task_done", translate("prefix"), world, chunkNum, percentDone, totalHours, totalMinutes, totalSeconds);
+            console.sendMessagePrefixed("task_done", world, chunkNum, String.format("%.2f", percentDone), String.format("%01d", totalHours), String.format("%02d", totalMinutes), String.format("%02d", totalSeconds));
         } else {
             long eta = (long) (chunksLeft / speed);
             long etaHours = eta / 3600;
             long etaMinutes = (eta - etaHours * 3600) / 60;
             long etaSeconds = eta - etaHours * 3600 - etaMinutes * 60;
-            console.sendMessage("task_update", translate("prefix"), world, chunkNum, percentDone, etaHours, etaMinutes, etaSeconds, speed, chunkX, chunkZ);
+            console.sendMessagePrefixed("task_update", world, chunkNum, String.format("%.2f", percentDone), String.format("%01d", etaHours), String.format("%02d", etaMinutes), String.format("%02d", etaSeconds), String.format("%.1f", speed), chunkX, chunkZ);
         }
     }
 
@@ -130,7 +128,7 @@ public class GenerationTask implements Runnable {
             });
         }
         if (stopped) {
-            chunky.getPlatform().getServer().getConsoleSender().sendMessage("task_stopped", translate("prefix"), selection.world().getName());
+            chunky.getPlatform().getServer().getConsoleSender().sendMessagePrefixed("task_stopped", selection.world().getName());
         } else {
             this.cancelled = true;
         }

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 
 public class Input {
+    public static final List<String> PATTERNS = Arrays.asList("concentric", "loop", "spiral");
     public static final List<String> SHAPES = Arrays.asList("circle", "diamond", "ellipse", "pentagon", "rectangle", "square", "star", "triangle");
     public static final List<String> LANGUAGES = Arrays.asList("bg", "de", "es", "fr", "nl", "pl", "pt", "ru", "tr", "zh_CN");
 
@@ -69,6 +70,21 @@ public class Input {
         return suffixValue(input.charAt(last))
                 .map(suffixValue -> tryDouble(input.substring(0, last)).map(d -> d * suffixValue))
                 .orElse(tryDouble(input));
+    }
+
+    public static Optional<Integer> trySign(String input) {
+        if (input == null || input.isEmpty()) {
+            return Optional.empty();
+        }
+        final char sign = input.charAt(0);
+        switch (sign) {
+            case '-':
+                return Optional.of(-1);
+            case '+':
+                return Optional.of(1);
+            default:
+                return Optional.empty();
+        }
     }
 
     public static boolean isPastWorldLimit(double value) {

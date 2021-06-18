@@ -3,7 +3,8 @@ package org.popcraft.chunky.platform;
 import org.popcraft.chunky.ChunkySponge;
 import org.popcraft.chunky.util.Coordinate;
 import org.spongepowered.api.Sponge;
-import org.spongepowered.api.world.Location;
+import org.spongepowered.api.world.server.ServerWorld;
+import org.spongepowered.math.vector.Vector3i;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,17 +13,17 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class SpongeWorld implements World {
-    private org.spongepowered.api.world.World world;
+    private ServerWorld world;
     private ChunkySponge plugin;
 
-    public SpongeWorld(org.spongepowered.api.world.World world, ChunkySponge plugin) {
+    public SpongeWorld(ServerWorld world, ChunkySponge plugin) {
         this.world = world;
         this.plugin = plugin;
     }
 
     @Override
     public String getName() {
-        return world.getName();
+        return world.key().asString();
     }
 
     @Override
@@ -33,37 +34,54 @@ public class SpongeWorld implements World {
     @Override
     public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        Sponge.getGame().getScheduler().createTaskBuilder().execute(() -> {
+        Sponge.game().asyncScheduler().createExecutor(plugin.getContainer()).execute(() -> {
             world.loadChunk(x, 0, z, true);
             future.complete(null);
-        }).submit(plugin);
+        });
         return future;
     }
 
     @Override
     public UUID getUUID() {
-        return world.getUniqueId();
+        return world.uniqueId();
     }
 
     @Override
     public int getSeaLevel() {
-        return world.getSeaLevel();
+        return world.seaLevel();
     }
 
     @Override
     public Coordinate getSpawnCoordinate() {
-        Location<org.spongepowered.api.world.World> spawnLocation = world.getSpawnLocation();
-        return new Coordinate(spawnLocation.getBlockX(), spawnLocation.getBlockZ());
+        Vector3i spawnLocation = world.properties().spawnPosition();
+        return new Coordinate(spawnLocation.x(), spawnLocation.z());
     }
 
     @Override
     public Border getWorldBorder() {
-        return new SpongeBorder(world.getWorldBorder());
+        return new SpongeBorder(world.border());
+    }
+
+    @Override
+    public Optional<Path> getEntitiesDirectory() {
+        return getDirectory("entities");
+    }
+
+    @Override
+    public Optional<Path> getPOIDirectory() {
+        return getDirectory("poi");
     }
 
     @Override
     public Optional<Path> getRegionDirectory() {
-        Path regionDirectory = world.getDirectory().resolve("region");
+        return getDirectory("region");
+    }
+
+    private Optional<Path> getDirectory(final String name) {
+        if (name == null) {
+            return Optional.empty();
+        }
+        Path regionDirectory = world.directory().resolve("name");
         return Files.exists(regionDirectory) ? Optional.of(regionDirectory) : Optional.empty();
     }
 

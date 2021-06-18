@@ -7,6 +7,7 @@ import org.popcraft.chunky.GenerationTask;
 import org.popcraft.chunky.Selection;
 import org.popcraft.chunky.util.Input;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +26,11 @@ public class BukkitConfig implements Config {
     }
 
     @Override
+    public Path getDirectory() {
+        return plugin.getDataFolder().toPath();
+    }
+
+    @Override
     public synchronized Optional<GenerationTask> loadTask(World world) {
         FileConfiguration config = plugin.getConfig();
         if (config.getConfigurationSection(TASKS_KEY + world.getName()) == null) {
@@ -34,11 +40,11 @@ public class BukkitConfig implements Config {
         if (config.getBoolean(world_key + "cancelled", false)) {
             return Optional.empty();
         }
-        int radiusX = config.getInt(world_key + "radius", 500);
-        int radiusZ = config.getInt(world_key + "z-radius", radiusX);
+        double radiusX = config.getDouble(world_key + "radius", 500);
+        double radiusZ = config.getDouble(world_key + "z-radius", radiusX);
         Selection.Builder selection = Selection.builder(world)
-                .centerX(config.getInt(world_key + "x-center", 0))
-                .centerZ(config.getInt(world_key + "z-center", 0))
+                .centerX(config.getDouble(world_key + "x-center", 0))
+                .centerZ(config.getDouble(world_key + "z-center", 0))
                 .radiusX(radiusX)
                 .radiusZ(radiusZ)
                 .pattern(config.getString(world_key + "iterator", "loop"))
