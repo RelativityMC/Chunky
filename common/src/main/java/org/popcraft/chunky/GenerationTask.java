@@ -100,7 +100,7 @@ public class GenerationTask implements Runnable {
                 continue;
             }
 
-            if ((Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())) < 1_000_000_000) {
+            if (false && (Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())) < 1_000_000_000) {
                 chunky.getPlatform().getServer().getConsoleSender().sendMessage("Available mem too low, waiting...");
                 boolean executed = false;
                 do {
