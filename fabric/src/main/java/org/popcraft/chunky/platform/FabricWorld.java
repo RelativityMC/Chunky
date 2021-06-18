@@ -10,6 +10,7 @@ import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.ChunkStatus;
 import org.popcraft.chunky.mixin.ServerChunkManagerMixin;
 import org.popcraft.chunky.mixin.ThreadedAnvilChunkStorageMixin;
+import org.popcraft.chunky.scheduler.SchedulerUtils;
 import org.popcraft.chunky.util.Coordinate;
 
 import java.nio.file.Files;
@@ -47,20 +48,21 @@ public class FabricWorld implements World {
             final CompletableFuture<Void> chunkFuture = new CompletableFuture<>();
             final ChunkPos chunkPos = new ChunkPos(x, z);
             serverWorld.getChunkManager().addTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            ((ServerChunkManagerMixin) serverWorld.getChunkManager()).ITick();
             ThreadedAnvilChunkStorage threadedAnvilChunkStorage = serverWorld.getChunkManager().threadedAnvilChunkStorage;
             ThreadedAnvilChunkStorageMixin threadedAnvilChunkStorageMixin = (ThreadedAnvilChunkStorageMixin) threadedAnvilChunkStorage;
-            ChunkHolder chunkHolder = threadedAnvilChunkStorageMixin.IGetChunkHolder(chunkPos.toLong());
-            if (chunkHolder == null) {
-                System.err.println("null chunkholder");
-                chunkFuture.complete(null);
-                serverWorld.getChunkManager().removeTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-            } else {
-                threadedAnvilChunkStorage.getChunk(chunkHolder, ChunkStatus.FULL).thenAcceptAsync(either -> {
+            SchedulerUtils.executor.execute(() -> {
+                ChunkHolder chunkHolder = threadedAnvilChunkStorageMixin.IGetChunkHolder(chunkPos.toLong());
+                if (chunkHolder == null) {
+                    System.err.println("null chunkholder");
                     chunkFuture.complete(null);
                     serverWorld.getChunkManager().removeTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-                }, serverWorld.getServer());
-            }
+                } else {
+                    threadedAnvilChunkStorage.getChunk(chunkHolder, ChunkStatus.FULL).thenAcceptAsync(either -> {
+                        chunkFuture.complete(null);
+                        serverWorld.getChunkManager().removeTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
+                    }, serverWorld.getServer());
+                }
+            });
             return chunkFuture;
         }
     }
