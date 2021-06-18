@@ -20,7 +20,7 @@ public class PatternCommand extends ChunkyCommand {
             return;
         }
         String pattern = args[1].toLowerCase();
-        if (!PATTERNS.contains(pattern)) {
+        if (!PATTERNS.contains(pattern.startsWith("chunked_") ? pattern.substring("chunked_".length()) : pattern)) {
             sender.sendMessage("help_pattern");
             return;
         }

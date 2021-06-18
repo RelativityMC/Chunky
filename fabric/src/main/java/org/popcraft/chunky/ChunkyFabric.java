@@ -48,14 +48,19 @@ public class ChunkyFabric implements ModInitializer {
         });
         CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
             Command<ServerCommandSource> command = context -> {
-                Sender sender = new FabricSender(context.getSource());
-                Map<String, ChunkyCommand> commands = chunky.getCommands();
-                String input = context.getInput();
-                int argsIndex = input.indexOf(' ');
-                String[] args = input.substring(argsIndex < 0 ? 0 : argsIndex + 1).split(" ");
-                String subCommand = args.length > 0 && commands.containsKey(args[0]) ? args[0] : "help";
-                commands.get(subCommand).execute(sender, args);
-                return Command.SINGLE_SUCCESS;
+                try {
+                    Sender sender = new FabricSender(context.getSource());
+                    Map<String, ChunkyCommand> commands = chunky.getCommands();
+                    String input = context.getInput();
+                    int argsIndex = input.indexOf(' ');
+                    String[] args = input.substring(argsIndex < 0 ? 0 : argsIndex + 1).split(" ");
+                    String subCommand = args.length > 0 && commands.containsKey(args[0]) ? args[0] : "help";
+                    commands.get(subCommand).execute(sender, args);
+                    return Command.SINGLE_SUCCESS;
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                    throw new RuntimeException(t);
+                }
             };
             dispatcher.register(LiteralArgumentBuilder.<ServerCommandSource>literal("chunky")
                     .then(literal("cancel")
