@@ -25,3 +25,8 @@ jobs:
             ${{ runner.os }}-gradle-
       - name: Build
         run: ./gradlew build
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: artifact
+          path: '**/build/libs/Chunky-*.jar'

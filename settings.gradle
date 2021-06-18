@@ -17,7 +17,7 @@ rootProject.name = 'chunky'
 include('common')
 
 [
-        //'bukkit',
+        'bukkit',
         //'sponge',
         //'forge',
         'fabric'

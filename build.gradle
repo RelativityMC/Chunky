@@ -7,7 +7,7 @@ subprojects {
     project.ext.majorVersion = '1'
     project.ext.minorVersion = '2'
     project.ext.patchVersion = commitsSinceLastTag()
-    project.ext.fullVersion = project.ext.majorVersion + '.' + project.ext.minorVersion + '.' + project.ext.patchVersion
+    project.ext.fullVersion = project.ext.majorVersion + '.' + project.ext.minorVersion + '.' + project.ext.patchVersion + '+ishlandfork'
     version = project.ext.fullVersion
 
     [tasks.withType(JavaCompile), tasks.withType(Javadoc)].forEach { type ->
