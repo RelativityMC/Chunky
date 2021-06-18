@@ -28,7 +28,7 @@ public class GenerationTask implements Runnable {
     private final AtomicLong finishedChunks = new AtomicLong();
     private final AtomicLong totalChunks = new AtomicLong();
     private final ConcurrentLinkedQueue<Long> chunkUpdateTimes = new ConcurrentLinkedQueue<>();
-    private static final int MAX_WORKING = 1024;
+    private static final int MAX_WORKING = 2048;
 
     public GenerationTask(Chunky chunky, Selection selection, long count, long time) {
         this(chunky, selection);
