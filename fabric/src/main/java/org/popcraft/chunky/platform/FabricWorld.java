@@ -1,6 +1,5 @@
 package org.popcraft.chunky.platform;
 
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.server.world.ChunkHolder;
 import net.minecraft.server.world.ChunkTicketType;
 import net.minecraft.server.world.ServerWorld;
@@ -9,7 +8,6 @@ import net.minecraft.util.Unit;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.ChunkStatus;
-import org.popcraft.chunky.mixin.ServerChunkManagerMixin;
 import org.popcraft.chunky.mixin.ThreadedAnvilChunkStorageMixin;
 import org.popcraft.chunky.scheduler.SchedulerUtils;
 import org.popcraft.chunky.util.Coordinate;
@@ -52,7 +50,7 @@ public class FabricWorld implements World {
             ThreadedAnvilChunkStorage threadedAnvilChunkStorage = serverWorld.getChunkManager().threadedAnvilChunkStorage;
             ThreadedAnvilChunkStorageMixin threadedAnvilChunkStorageMixin = (ThreadedAnvilChunkStorageMixin) threadedAnvilChunkStorage;
             SchedulerUtils.executor.execute(() -> {
-                ChunkHolder chunkHolder = threadedAnvilChunkStorageMixin.IGetChunkHolder(chunkPos.toLong());
+                ChunkHolder chunkHolder = threadedAnvilChunkStorageMixin.invokeGetChunkHolder(chunkPos.toLong());
                 if (chunkHolder == null) {
                     System.err.println("null chunkholder");
                     chunkFuture.complete(null);
