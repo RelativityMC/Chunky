@@ -77,7 +77,7 @@ public class TrimCommand extends ChunkyCommand {
         }
         final Selection selection = chunky.getSelection().build();
         final Shape shape = ShapeFactory.getShape(selection);
-        final Runnable deletionAction = () -> chunky.getPlatform().getServer().getScheduler().runTaskAsync(() -> {
+        final Runnable deletionAction = () -> chunky.getServer().getScheduler().runTaskAsync(() -> {
             sender.sendMessagePrefixed("format_start", selection.world().getName(), translate("shape_" + selection.shape()), Formatting.number(selection.centerX()), Formatting.number(selection.centerZ()), Formatting.radius(selection));
             final Optional<Path> regionPath = selection.world().getRegionDirectory();
             final Optional<Path> poiPath = selection.world().getPOIDirectory();
@@ -163,6 +163,9 @@ public class TrimCommand extends ChunkyCommand {
     private int trimRegion(final Path region, final Shape shape, final int chunkX, final int chunkZ) {
         int deleted = 0;
         try (RandomAccessFile regionFile = new RandomAccessFile(region.toFile(), "rw")) {
+            if (regionFile.length() < 4096) {
+                return 0;
+            }
             for (int offsetX = 0; offsetX < 32; ++offsetX) {
                 for (int offsetZ = 0; offsetZ < 32; ++offsetZ) {
                     int chunkCenterX = ((chunkX + offsetX) << 4) + 8;
@@ -188,7 +191,7 @@ public class TrimCommand extends ChunkyCommand {
     public List<String> tabSuggestions(Sender sender, String[] args) {
         if (args.length == 2) {
             List<String> suggestions = new ArrayList<>();
-            chunky.getPlatform().getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));
+            chunky.getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));
             return suggestions;
         } else if (args.length == 3) {
             return Input.SHAPES;

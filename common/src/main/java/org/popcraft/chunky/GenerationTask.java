@@ -3,9 +3,6 @@ package org.popcraft.chunky;
 import org.popcraft.chunky.iterator.ChunkIterator;
 import org.popcraft.chunky.iterator.ChunkIteratorFactory;
 import org.popcraft.chunky.platform.Sender;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.popcraft.chunky.platform.World;
 import org.popcraft.chunky.shape.Shape;
 import org.popcraft.chunky.shape.ShapeFactory;
 import org.popcraft.chunky.util.ChunkCoordinate;
@@ -29,6 +26,7 @@ public class GenerationTask implements Runnable {
     private final AtomicLong totalChunks = new AtomicLong();
     private final ConcurrentLinkedQueue<Long> chunkUpdateTimes = new ConcurrentLinkedQueue<>();
     private static final int MAX_WORKING = 2048;
+    private final Progress progress;
 
     public GenerationTask(Chunky chunky, Selection selection, long count, long time) {
         this(chunky, selection);
@@ -43,46 +41,45 @@ public class GenerationTask implements Runnable {
         this.chunkIterator = ChunkIteratorFactory.getChunkIterator(selection);
         this.shape = ShapeFactory.getShape(selection);
         this.totalChunks.set(chunkIterator.total());
+        this.progress = new Progress(selection.world().getName());
     }
 
     @SuppressWarnings("ConstantConditions")
-    private void printUpdate(World chunkWorld, int chunkX, int chunkZ) {
+    private void printUpdate(int chunkX, int chunkZ) {
         if (stopped) {
             return;
         }
-        String world = chunkWorld.getName();
-        long chunkNum = finishedChunks.addAndGet(1);
-        double percentDone = 100f * chunkNum / totalChunks.get();
-        long currentTime = System.currentTimeMillis();
+        this.progress.chunkCount = finishedChunks.addAndGet(1);
+        this.progress.percentComplete = 100f * this.progress.chunkCount / totalChunks.get();
+        final long currentTime = System.currentTimeMillis();
         chunkUpdateTimes.add(currentTime);
         while (currentTime - chunkUpdateTimes.peek() > 1e4) {
             chunkUpdateTimes.poll();
         }
-        long chunksLeft = totalChunks.get() - finishedChunks.get();
+        final long chunksLeft = totalChunks.get() - finishedChunks.get();
         if (chunksLeft > 0 && (chunky.getOptions().isSilent() || ((currentTime - printTime.get()) / 1e3) < chunky.getOptions().getQuietInterval())) {
             return;
         }
         printTime.set(currentTime);
-        long oldestTime = chunkUpdateTimes.peek();
-        double timeDiff = (currentTime - oldestTime) / 1e3;
+        final long oldestTime = chunkUpdateTimes.peek();
+        final double timeDiff = (currentTime - oldestTime) / 1e3;
         if (chunksLeft > 0 && timeDiff < 1e-1) {
             return;
         }
-        double speed = chunkUpdateTimes.size() / timeDiff;
-        Sender console = chunky.getPlatform().getServer().getConsoleSender();
+        this.progress.rate = chunkUpdateTimes.size() / timeDiff;
+        final long time;
         if (chunksLeft == 0) {
-            long total = (prevTime + (currentTime - startTime.get())) / 1000;
-            long totalHours = total / 3600;
-            long totalMinutes = (total - totalHours * 3600) / 60;
-            long totalSeconds = total - totalHours * 3600 - totalMinutes * 60;
-            console.sendMessagePrefixed("task_done", world, chunkNum, String.format("%.2f", percentDone), String.format("%01d", totalHours), String.format("%02d", totalMinutes), String.format("%02d", totalSeconds));
+            time = (prevTime + (currentTime - startTime.get())) / 1000;
+            this.progress.complete = true;
         } else {
-            long eta = (long) (chunksLeft / speed);
-            long etaHours = eta / 3600;
-            long etaMinutes = (eta - etaHours * 3600) / 60;
-            long etaSeconds = eta - etaHours * 3600 - etaMinutes * 60;
-            console.sendMessagePrefixed("task_update", world, chunkNum, String.format("%.2f", percentDone), String.format("%01d", etaHours), String.format("%02d", etaMinutes), String.format("%02d", etaSeconds), String.format("%.1f", speed), chunkX, chunkZ);
+            time = (long) (chunksLeft / this.progress.rate);
         }
+        this.progress.hours = time / 3600;
+        this.progress.minutes = (time - this.progress.hours * 3600) / 60;
+        this.progress.seconds = time - this.progress.hours * 3600 - this.progress.minutes * 60;
+        this.progress.chunkX = chunkX;
+        this.progress.chunkZ = chunkZ;
+        this.progress.sendUpdate(chunky.getServer().getConsoleSender());
     }
 
     @Override
@@ -93,29 +90,13 @@ public class GenerationTask implements Runnable {
         startTime.set(System.currentTimeMillis());
         while (!stopped && chunkIterator.hasNext()) {
             final ChunkCoordinate chunkCoord = chunkIterator.next();
-            int xChunkCenter = (chunkCoord.x << 4) + 8;
-            int zChunkCenter = (chunkCoord.z << 4) + 8;
-            if (!shape.isBounding(xChunkCenter, zChunkCenter) || selection.world().isChunkGenerated(chunkCoord.x, chunkCoord.z)) {
-                printUpdate(selection.world(), chunkCoord.x, chunkCoord.z);
+            final int chunkCenterX = (chunkCoord.x << 4) + 8;
+            final int chunkCenterZ = (chunkCoord.z << 4) + 8;
+            if (!shape.isBounding(chunkCenterX, chunkCenterZ) || selection.world().isChunkGenerated(chunkCoord.x, chunkCoord.z)) {
+                printUpdate(chunkCoord.x, chunkCoord.z);
                 continue;
             }
 
-            if (false && (Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())) < 1_000_000_000) {
-                chunky.getPlatform().getServer().getConsoleSender().sendMessage("Available mem too low, waiting...");
-                boolean executed = false;
-                do {
-                    if(executed) {
-                        chunky.getPlatform().getServer().getConsoleSender().sendMessage("Attempting GC");
-                        System.gc();
-                    }
-                    try {
-                        Thread.sleep(8000);
-                    } catch (InterruptedException ignored) {
-                    }
-                    executed = true;
-                } while ((Runtime.getRuntime().maxMemory() - (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory())) < 1_800_000_000);
-                chunky.getPlatform().getServer().getConsoleSender().sendMessage("Continuing...");
-            }
             try {
                 working.acquire();
             } catch (InterruptedException e) {
@@ -124,11 +105,11 @@ public class GenerationTask implements Runnable {
             }
             selection.world().getChunkAtAsync(chunkCoord.x, chunkCoord.z).thenRun(() -> {
                 working.release();
-                printUpdate(selection.world(), chunkCoord.x, chunkCoord.z);
+                printUpdate(chunkCoord.x, chunkCoord.z);
             });
         }
         if (stopped) {
-            chunky.getPlatform().getServer().getConsoleSender().sendMessagePrefixed("task_stopped", selection.world().getName());
+            chunky.getServer().getConsoleSender().sendMessagePrefixed("task_stopped", selection.world().getName());
         } else {
             this.cancelled = true;
         }
@@ -137,7 +118,7 @@ public class GenerationTask implements Runnable {
         Thread.currentThread().setName(poolThreadName);
     }
 
-    public void stop(boolean cancelled) {
+    public void stop(final boolean cancelled) {
         this.stopped = true;
         this.cancelled = cancelled;
     }
@@ -164,5 +145,31 @@ public class GenerationTask implements Runnable {
 
     public long getTotalTime() {
         return prevTime + (startTime.get() > 0 ? System.currentTimeMillis() - startTime.get() : 0);
+    }
+
+    public Progress getProgress() {
+        return progress;
+    }
+
+    public static class Progress {
+        private final String world;
+        private long chunkCount;
+        private boolean complete;
+        private double percentComplete;
+        private long hours, minutes, seconds;
+        private double rate;
+        private int chunkX, chunkZ;
+
+        private Progress(final String world) {
+            this.world = world;
+        }
+
+        private void sendUpdate(final Sender sender) {
+            if (this.complete) {
+                sender.sendMessagePrefixed("task_done", world, chunkCount, String.format("%.2f", percentComplete), String.format("%01d", hours), String.format("%02d", minutes), String.format("%02d", seconds));
+            } else {
+                sender.sendMessagePrefixed("task_update", world, chunkCount, String.format("%.2f", percentComplete), String.format("%01d", hours), String.format("%02d", minutes), String.format("%02d", seconds), String.format("%.1f", rate), chunkX, chunkZ);
+            }
+        }
     }
 }

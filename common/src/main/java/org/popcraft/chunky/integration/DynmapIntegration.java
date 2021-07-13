@@ -16,7 +16,6 @@ import java.util.Map;
 public class DynmapIntegration extends AbstractMapIntegration {
     private MarkerSet markerSet;
     private Map<World, MarkerDescription> markers;
-    private int weight = 3;
 
     public DynmapIntegration(DynmapAPI dynmapAPI) {
         this.markerSet = dynmapAPI.getMarkerAPI().createMarkerSet("chunky.markerset", this.label, null, false);
@@ -26,7 +25,6 @@ public class DynmapIntegration extends AbstractMapIntegration {
     @Override
     public void addShapeMarker(World world, Shape shape) {
         removeShapeMarker(world);
-        int color = (this.color.getRed() << 16) + (this.color.getGreen() << 8) + this.color.getBlue();
         if (shape instanceof AbstractPolygon) {
             AbstractPolygon polygon = (AbstractPolygon) shape;
             AreaMarker marker = markerSet.createAreaMarker(null, this.label, false, world.getName(), polygon.pointsX(), polygon.pointsZ(), false);

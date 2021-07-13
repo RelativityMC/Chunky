@@ -1,10 +1,8 @@
 package org.popcraft.chunky.integration;
 
-import java.awt.Color;
-
 public abstract class AbstractMapIntegration implements MapIntegration {
     protected String label = "World Border";
-    protected Color color = Color.RED;
+    protected int color = 0xFF0000;
     protected int weight = 3;
 
     @Override
@@ -12,16 +10,13 @@ public abstract class AbstractMapIntegration implements MapIntegration {
         if (label != null && !label.isEmpty()) {
             this.label = label;
         }
+        this.weight = Math.max(1, weight);
         if (color.length() != 6) {
             return;
         }
         try {
-            int r = Integer.parseInt(color.substring(0, 2), 16);
-            int g = Integer.parseInt(color.substring(2, 4), 16);
-            int b = Integer.parseInt(color.substring(4, 6), 16);
-            this.color = new Color(r, g, b);
+            this.color = Integer.parseInt(color, 16);
         } catch (NumberFormatException ignored) {
         }
-        this.weight = weight;
     }
 }
