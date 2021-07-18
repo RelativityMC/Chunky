@@ -15,4 +15,14 @@ public class MinecraftServerMixin {
         SchedulerUtils.processQueue();
     }
 
+    @Inject(at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;setFavicon(Lnet/minecraft/server/ServerMetadata;)V", ordinal = 0), method = "runServer")
+    private void onServerStarted(CallbackInfo ci) {
+        SchedulerUtils.invokeOnServerStart((MinecraftServer) (Object) this);
+    }
+
+    @Inject(at = @At("HEAD"), method = "shutdown")
+    private void onServerStopping(CallbackInfo ci) {
+        SchedulerUtils.invokeOnServerStop((MinecraftServer) (Object) this);
+    }
+
 }

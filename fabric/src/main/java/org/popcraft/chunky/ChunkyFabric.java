@@ -3,8 +3,6 @@ package org.popcraft.chunky;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.command.ServerCommandSource;
 import org.popcraft.chunky.command.ChunkyCommand;
@@ -13,6 +11,7 @@ import org.popcraft.chunky.platform.FabricSender;
 import org.popcraft.chunky.platform.FabricServer;
 import org.popcraft.chunky.platform.Sender;
 import org.popcraft.chunky.platform.impl.GsonConfig;
+import org.popcraft.chunky.scheduler.SchedulerUtils;
 import org.popcraft.chunky.util.Limit;
 
 import java.io.File;
@@ -30,7 +29,7 @@ public class ChunkyFabric implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        ServerLifecycleEvents.SERVER_STARTED.register(minecraftServer -> {
+        SchedulerUtils.registerOnServerStart(minecraftServer -> {
             this.chunky = new Chunky(new FabricServer(this, minecraftServer));
             File configFile = new File(FabricLoader.getInstance().getConfigDir().toFile(), "chunky.json");
             chunky.setConfig(new GsonConfig(chunky, configFile));
@@ -41,12 +40,12 @@ public class ChunkyFabric implements ModInitializer {
                 chunky.getCommands().get("continue").execute(chunky.getServer().getConsoleSender(), new String[]{});
             }
         });
-        ServerLifecycleEvents.SERVER_STOPPING.register(minecraftServer -> {
+        SchedulerUtils.registerOnServerStop(minecraftServer -> {
             chunky.getConfig().saveTasks();
             chunky.getGenerationTasks().values().forEach(generationTask -> generationTask.stop(false));
             chunky.getServer().getScheduler().cancelTasks();
         });
-        CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+        SchedulerUtils.registerCommand((dispatcher) -> {
             Command<ServerCommandSource> command = context -> {
                 try {
                     Sender sender = new FabricSender(context.getSource());
