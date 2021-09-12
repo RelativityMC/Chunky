@@ -62,7 +62,11 @@ public class FabricWorld implements World {
                     chunkHolder.getChunkAt(ChunkStatus.FULL, threadedAnvilChunkStorage).thenAcceptAsync(either -> {
                         chunkFuture.complete(null);
                         serverWorld.getChunkManager().removeTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
-                    }, serverWorld.getServer());
+                    }, serverWorld.getServer()).exceptionally(throwable -> {
+                        throwable.printStackTrace();
+                        serverWorld.getServer().stop(false);
+                        return null;
+                    });
                 }
             });
             return chunkFuture;
