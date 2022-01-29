@@ -8,6 +8,16 @@ public class ChunkIteratorFactory {
     }
 
     public static ChunkIterator getChunkIterator(Selection selection, long count) {
+        if (selection.pattern().startsWith("chunked_"))
+            return new WrappingChunkedChunkIterator(new Selection(
+                    selection.world(),
+                    selection.centerX(),
+                    selection.centerZ(),
+                    selection.radiusX(),
+                    selection.radiusZ(),
+                    selection.pattern().substring("chunked_".length()),
+                    selection.shape()
+            ), count);
         switch (selection.shape()) {
             case ShapeType.RECTANGLE:
             case ShapeType.ELLIPSE:

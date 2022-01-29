@@ -13,11 +13,12 @@ import org.popcraft.chunky.util.TranslationKey;
 
 import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class GenerationTask implements Runnable {
-    private static final int MAX_WORKING_COUNT = Input.tryInteger(System.getProperty("chunky.maxWorkingCount")).orElse(50);
+    private static final int MAX_WORKING_COUNT = Input.tryInteger(System.getProperty("chunky.maxWorkingCount")).orElse(768);
     private final Chunky chunky;
     private final Selection selection;
     private final Shape shape;
@@ -28,6 +29,7 @@ public class GenerationTask implements Runnable {
     private final Deque<Pair<Long, AtomicLong>> updateSamples = new ConcurrentLinkedDeque<>();
     private final Progress progress;
     private final RegionCache.WorldState worldState;
+    private final ConcurrentLinkedQueue<Runnable> tasks = new ConcurrentLinkedQueue<>();
     private ChunkIterator chunkIterator;
     private boolean stopped, cancelled;
     private long prevTime;
@@ -116,6 +118,16 @@ public class GenerationTask implements Runnable {
                 update(chunk.x, chunk.z, true);
                 continue;
             }
+            {
+                Runnable runnable;
+                while ((runnable = this.tasks.poll()) != null) {
+                    try {
+                        runnable.run();
+                    } catch (Throwable t) {
+                        t.printStackTrace();
+                    }
+                }
+            }
             try {
                 working.acquire();
             } catch (InterruptedException e) {
@@ -123,9 +135,9 @@ public class GenerationTask implements Runnable {
                 stop(cancelled);
                 break;
             }
-            selection.world().getChunkAtAsync(chunk.x, chunk.z).whenComplete((ignored, throwable) -> {
+            selection.world().getChunkAtAsync(chunk.x, chunk.z).whenCompleteAsync((ignored, throwable) -> {
                 working.release();
-                update(chunk.x, chunk.z, true);
+                tasks.add(() -> update(chunk.x, chunk.z, true));
             });
         }
         if (stopped) {

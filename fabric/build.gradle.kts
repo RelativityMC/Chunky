@@ -8,7 +8,7 @@ dependencies {
     minecraft(group = "com.mojang", name = "minecraft", version = "1.18")
     mappings(group = "net.fabricmc", name = "yarn", version = "1.18+build.1", classifier = "v2")
     modImplementation(group = "net.fabricmc", name = "fabric-loader", version = "0.12.6")
-    modImplementation(group = "net.fabricmc.fabric-api", name = "fabric-api", version = "0.43.1+1.18")
+//    modImplementation(group = "net.fabricmc.fabric-api", name = "fabric-api", version = "0.43.1+1.18")
     implementation(project(":chunky-common"))
     shade(project(":chunky-common"))
 }

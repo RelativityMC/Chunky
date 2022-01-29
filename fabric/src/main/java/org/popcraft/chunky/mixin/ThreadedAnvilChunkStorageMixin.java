@@ -12,12 +12,12 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @SuppressWarnings("UnnecessaryInterfaceModifier")
 @Mixin(ThreadedAnvilChunkStorage.class)
 public interface ThreadedAnvilChunkStorageMixin {
-    @Invoker("getChunkHolder")
-    public ChunkHolder getChunkHolder(long pos);
+    @Invoker
+    public ChunkHolder invokeGetChunkHolder(long pos);
 
-    @Invoker("getUpdatedChunkNbt")
-    public NbtCompound getUpdatedChunkNbt(ChunkPos pos);
+    @Invoker
+    public NbtCompound invokeGetUpdatedChunkNbt(ChunkPos pos);
 
-    @Accessor("chunksToUnload")
+    @Accessor
     public Long2ObjectLinkedOpenHashMap<ChunkHolder> getChunksToUnload();
 }

@@ -23,6 +23,8 @@ public class Input {
             return Optional.empty();
         }
         String inputLower = input.toLowerCase();
+        if (inputLower.startsWith("chunked_"))
+            return tryPattern(inputLower.substring("chunked_".length())).map(s -> "chunked_" + s);
         if (PatternType.ALL.contains(inputLower)) {
             return Optional.of(inputLower);
         }

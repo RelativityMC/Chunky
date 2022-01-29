@@ -1,13 +1,12 @@
 package org.popcraft.chunky;
 
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.command.v1.CommandRegistrationCallback;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
 import org.popcraft.chunky.command.ChunkyCommand;
 import org.popcraft.chunky.command.CommandLiteral;
@@ -21,6 +20,8 @@ import org.popcraft.chunky.platform.impl.GsonConfig;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
 import static com.mojang.brigadier.arguments.StringArgumentType.string;
@@ -32,22 +33,27 @@ import static net.minecraft.server.command.CommandManager.literal;
 public class ChunkyFabric implements ModInitializer {
     private Chunky chunky;
 
+    public static Consumer<MinecraftServer> SERVER_STARTED = unused -> {};
+    public static Consumer<MinecraftServer> SERVER_STOPPING = unused -> {};
+    public static Consumer<MinecraftServer> SERVER_TICK_END = unused -> {};
+    public static Consumer<CommandDispatcher<ServerCommandSource>> COMMAND_REGISTER = unused -> {};
+
     @Override
     public void onInitialize() {
-        ServerLifecycleEvents.SERVER_STARTED.register(minecraftServer -> {
+        SERVER_STARTED = minecraftServer -> {
             File configFile = new File(FabricLoader.getInstance().getConfigDir().toFile(), "chunky.json");
             this.chunky = new Chunky(new FabricServer(this, minecraftServer), new GsonConfig(() -> chunky, configFile));
             if (chunky.getConfig().getContinueOnRestart()) {
                 chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), new String[]{});
             }
-        });
-        ServerLifecycleEvents.SERVER_STOPPING.register(minecraftServer -> {
+        };
+        SERVER_STOPPING = minecraftServer -> {
             if (chunky != null) {
                 chunky.disable();
             }
-        });
-        ServerTickEvents.END_SERVER_TICK.register(server -> BossBarProgress.tick(chunky, server));
-        CommandRegistrationCallback.EVENT.register((dispatcher, dedicated) -> {
+        };
+        SERVER_TICK_END = server -> BossBarProgress.tick(chunky, server);
+        COMMAND_REGISTER = dispatcher -> {
             final LiteralArgumentBuilder<ServerCommandSource> command = literal(CommandLiteral.CHUNKY)
                     .requires(serverCommandSource -> serverCommandSource.hasPermissionLevel(2))
                     .executes(context -> {
@@ -108,7 +114,7 @@ public class ChunkyFabric implements ModInitializer {
             registerArguments(command, literal(CommandLiteral.WORLD),
                     argument(CommandLiteral.WORLD, dimension()));
             dispatcher.register(command);
-        });
+        };
     }
 
     @SafeVarargs

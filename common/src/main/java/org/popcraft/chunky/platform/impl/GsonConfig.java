@@ -52,6 +52,8 @@ public class GsonConfig implements Config {
         } else {
             reload();
         }
+        if (this.configModel.tasks != null)
+            this.configModel.tasks.clear();
         Translator.setLanguage(getLanguage());
     }
 

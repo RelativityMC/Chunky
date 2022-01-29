@@ -25,7 +25,7 @@ public class Selection {
     private final int diameterChunksX;
     private final int diameterChunksZ;
 
-    private Selection(World world, double centerX, double centerZ, double radiusX, double radiusZ, String pattern, String shape) {
+    public Selection(World world, double centerX, double centerZ, double radiusX, double radiusZ, String pattern, String shape) {
         this.world = world;
         this.centerX = centerX;
         this.centerZ = centerZ;

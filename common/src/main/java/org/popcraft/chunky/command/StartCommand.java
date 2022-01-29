@@ -84,12 +84,13 @@ public class StartCommand extends ChunkyCommand {
             chunky.getScheduler().runTask(generationTask);
             sender.sendMessagePrefixed(TranslationKey.FORMAT_START, current.world().getName(), translate("shape_" + current.shape()), Formatting.number(current.centerX()), Formatting.number(current.centerZ()), Formatting.radius(current));
         };
-        if (chunky.getConfig().loadTask(current.world()).isPresent()) {
-            chunky.setPendingAction(sender, startAction);
-            sender.sendMessagePrefixed(TranslationKey.FORMAT_START_CONFIRM, "/chunky continue", "/chunky confirm");
-        } else {
-            startAction.run();
-        }
+//        if (chunky.getConfig().loadTask(current.world()).isPresent()) {
+//            chunky.setPendingAction(sender, startAction);
+//            sender.sendMessagePrefixed(TranslationKey.FORMAT_START_CONFIRM, "/chunky continue", "/chunky confirm");
+//        } else {
+//            startAction.run();
+//        }
+        startAction.run();
     }
 
     @Override

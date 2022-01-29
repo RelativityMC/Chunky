@@ -11,10 +11,10 @@ rootProject.name = "chunky"
 
 sequenceOf(
     "common",
-    "bukkit",
+//    "bukkit",
     "fabric",
-    "forge",
-    "sponge"
+//    "forge",
+//    "sponge"
 ).forEach {
     include("${rootProject.name}-$it")
     project(":${rootProject.name}-$it").projectDir = file(it)
