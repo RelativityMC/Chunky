@@ -17,7 +17,7 @@ public class MixinCommandManager {
 
     @Shadow @Final private CommandDispatcher<ServerCommandSource> dispatcher;
 
-    @Inject(method = "<init>", at = @At(value = "INVOKE", target = "Lcom/mojang/brigadier/CommandDispatcher;findAmbiguities(Lcom/mojang/brigadier/AmbiguityConsumer;)V", shift = At.Shift.BEFORE))
+    @Inject(method = "<init>", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/command/AdvancementCommand;register(Lcom/mojang/brigadier/CommandDispatcher;)V", shift = At.Shift.BEFORE))
     private void onCommandRegister(CallbackInfo ci) {
         try {
             ChunkyFabric.COMMAND_REGISTER.accept(this.dispatcher);

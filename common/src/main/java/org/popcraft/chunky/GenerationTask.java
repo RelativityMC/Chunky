@@ -145,9 +145,26 @@ public class GenerationTask implements Runnable {
         } else {
             cancelled = true;
         }
+        if (!stopped) {
+            do {
+                pollTasks();
+            } while (working.availablePermits() < MAX_WORKING_COUNT);
+        }
+        update(0, 0, true);
         chunky.getConfig().saveTask(this);
         chunky.getGenerationTasks().remove(selection.world().getName());
         Thread.currentThread().setName(poolThreadName);
+    }
+
+    private void pollTasks() {
+        Runnable runnable;
+        while ((runnable = this.tasks.poll()) != null) {
+            try {
+                runnable.run();
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+        }
     }
 
     public void stop(final boolean cancelled) {

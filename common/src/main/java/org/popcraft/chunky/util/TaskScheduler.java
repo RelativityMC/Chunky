@@ -25,7 +25,13 @@ public class TaskScheduler {
     }
 
     public void runTask(Runnable runnable) {
-        futures.add(executor.submit(runnable));
+        futures.add(executor.submit(() -> {
+            try {
+                runnable.run();
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
+        }));
         futures.removeIf(Future::isDone);
     }
 
