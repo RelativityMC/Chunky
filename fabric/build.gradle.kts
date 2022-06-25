@@ -1,14 +1,14 @@
 plugins {
-    id("fabric-loom") version "0.10-SNAPSHOT"
+    id("fabric-loom") version "0.12-SNAPSHOT"
 }
 
 val shade: Configuration by configurations.creating
 
 dependencies {
-    minecraft(group = "com.mojang", name = "minecraft", version = "1.18.1")
-    mappings(group = "net.fabricmc", name = "yarn", version = "1.18.1+build.22", classifier = "v2")
-    modImplementation(group = "net.fabricmc", name = "fabric-loader", version = "0.12.12")
-//    modImplementation(group = "net.fabricmc.fabric-api", name = "fabric-api", version = "0.43.1+1.18")
+    minecraft(group = "com.mojang", name = "minecraft", version = "1.19")
+    mappings(group = "net.fabricmc", name = "yarn", version = "1.19+build.1", classifier = "v2")
+    modImplementation(group = "net.fabricmc", name = "fabric-loader", version = "0.14.6")
+//    modImplementation(group = "net.fabricmc.fabric-api", name = "fabric-api", version = "0.55.2+1.19")
     implementation(project(":chunky-common"))
     shade(project(":chunky-common"))
 }
@@ -38,7 +38,7 @@ tasks {
         archiveFileName.set(null as String?)
     }
     remapJar {
-        input.set(shadowJar.get().archiveFile)
+        inputFile.set(shadowJar.get().archiveFile)
         archiveFileName.set("${rootProject.name.capitalize()}-${project.version}.jar")
     }
 }

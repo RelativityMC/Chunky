@@ -1,27 +1,37 @@
 package org.popcraft.chunky.platform;
 
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.FileConfigurationOptions;
 import org.popcraft.chunky.ChunkyBukkit;
 import org.popcraft.chunky.GenerationTask;
 import org.popcraft.chunky.Selection;
 import org.popcraft.chunky.iterator.PatternType;
 import org.popcraft.chunky.shape.ShapeType;
 import org.popcraft.chunky.util.Input;
+import org.popcraft.chunky.util.Parameter;
 import org.popcraft.chunky.util.Translator;
 
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 public class BukkitConfig implements Config {
     private static final String TASKS_KEY = "tasks.";
+    private static final List<String> HEADER = Arrays.asList("Chunky Configuration", "https://github.com/pop4959/Chunky/wiki/Configuration");
     private final ChunkyBukkit plugin;
 
     public BukkitConfig(ChunkyBukkit plugin) {
         this.plugin = plugin;
-        plugin.getConfig().options().copyDefaults(true);
-        plugin.getConfig().options().copyHeader(true);
+        final FileConfigurationOptions options = plugin.getConfig().options();
+        options.copyDefaults(true);
+        try {
+            FileConfigurationOptions.class.getMethod("header", String.class).invoke(options, String.join("\n", HEADER));
+        } catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+            options.setHeader(HEADER);
+        }
         plugin.saveConfig();
         Translator.setLanguage(getLanguage());
     }
@@ -38,21 +48,19 @@ public class BukkitConfig implements Config {
             return Optional.empty();
         }
         String worldKey = TASKS_KEY + world.getName() + ".";
-        if (config.getBoolean(worldKey + "cancelled", false)) {
-            return Optional.empty();
-        }
+        boolean cancelled = config.getBoolean(worldKey + "cancelled", false);
         double radiusX = config.getDouble(worldKey + "radius", Selection.DEFAULT_RADIUS);
         double radiusZ = config.getDouble(worldKey + "z-radius", radiusX);
-        Selection.Builder selection = Selection.builder(world)
+        Selection.Builder selection = Selection.builder(plugin.getChunky(), world)
                 .centerX(config.getDouble(worldKey + "x-center", Selection.DEFAULT_CENTER_X))
                 .centerZ(config.getDouble(worldKey + "z-center", Selection.DEFAULT_CENTER_Z))
                 .radiusX(radiusX)
                 .radiusZ(radiusZ)
-                .pattern(config.getString(worldKey + "iterator", PatternType.CONCENTRIC))
+                .pattern(Parameter.of(config.getString(worldKey + "iterator", PatternType.CONCENTRIC)))
                 .shape(config.getString(worldKey + "shape", ShapeType.SQUARE));
         long count = config.getLong(worldKey + "count", 0);
         long time = config.getLong(worldKey + "time", 0);
-        return Optional.of(new GenerationTask(plugin.getChunky(), selection.build(), count, time));
+        return Optional.of(new GenerationTask(plugin.getChunky(), selection.build(), count, time, cancelled));
     }
 
     @Override
@@ -116,6 +124,26 @@ public class BukkitConfig implements Config {
     @Override
     public boolean getContinueOnRestart() {
         return plugin.getConfig().getBoolean("continue-on-restart", false);
+    }
+
+    @Override
+    public boolean isSilent() {
+        return plugin.getConfig().getBoolean("silent", false);
+    }
+
+    @Override
+    public void setSilent(boolean silent) {
+        plugin.getConfig().set("silent", silent);
+    }
+
+    @Override
+    public int getUpdateInterval() {
+        return plugin.getConfig().getInt("update-interval", 1);
+    }
+
+    @Override
+    public void setUpdateInterval(int updateInterval) {
+        plugin.getConfig().set("update-interval", updateInterval);
     }
 
     @Override

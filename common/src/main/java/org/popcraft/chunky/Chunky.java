@@ -29,7 +29,6 @@ public class Chunky {
     private final Selection.Builder selection;
     private final TaskScheduler scheduler = new TaskScheduler();
     private final Map<String, GenerationTask> generationTasks = new ConcurrentHashMap<>();
-    private final Options options = new Options();
     private final Map<String, PendingAction> pendingActions = new HashMap<>();
     private final RegionCache regionCache = new RegionCache();
     private final double limit;
@@ -40,10 +39,18 @@ public class Chunky {
         this.server = server;
         this.config = config;
         this.eventBus = new EventBus();
-        this.selection = Selection.builder(server.getWorlds().get(0));
+        this.selection = Selection.builder(this, server.getWorlds().get(0));
         this.limit = loadLimit().orElse(Double.MAX_VALUE);
         this.version = loadVersion();
         this.commands = loadCommands();
+        ChunkyProvider.register(this);
+    }
+
+    public void disable() {
+        getConfig().saveTasks();
+        getGenerationTasks().values().forEach(generationTask -> generationTask.stop(false));
+        getScheduler().cancelTasks();
+        ChunkyProvider.unregister();
     }
 
     private Optional<Double> loadLimit() {
@@ -91,12 +98,6 @@ public class Chunky {
         return commandMap;
     }
 
-    public void disable() {
-        getConfig().saveTasks();
-        getGenerationTasks().values().forEach(generationTask -> generationTask.stop(false));
-        getScheduler().cancelTasks();
-    }
-
     public TaskScheduler getScheduler() {
         return scheduler;
     }
@@ -123,10 +124,6 @@ public class Chunky {
 
     public Selection.Builder getSelection() {
         return selection;
-    }
-
-    public Options getOptions() {
-        return options;
     }
 
     public Optional<Runnable> getPendingAction(Sender sender) {

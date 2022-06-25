@@ -2,7 +2,6 @@ package org.popcraft.chunky.platform;
 
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
@@ -20,7 +19,6 @@ import org.popcraft.chunky.ChunkyForge;
 import org.popcraft.chunky.platform.util.Location;
 import org.popcraft.chunky.util.Input;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -43,6 +41,11 @@ public class ForgeWorld implements World {
     }
 
     @Override
+    public String getKey() {
+        return getName();
+    }
+
+    @Override
     public boolean isChunkGenerated(int x, int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).join();
@@ -57,16 +60,7 @@ public class ForgeWorld implements World {
             if (unloadedChunkHolder != null && unloadedChunkHolder.getLastAvailableStatus() == ChunkStatus.FULL) {
                 return true;
             }
-            CompoundTag chunkNbt;
-            try {
-                chunkNbt = chunkStorage.readChunk(chunkPos);
-            } catch (IOException e) {
-                return false;
-            }
-            if (chunkNbt != null && chunkNbt.contains("Status", 8)) {
-                return "full".equals(chunkNbt.getString("Status"));
-            }
-            return false;
+            return chunkStorage.readChunk(chunkPos).join().map(chunkNbt -> chunkNbt.contains("Status", 8) && "full".equals(chunkNbt.getString("Status"))).orElse(false);
         }
     }
 
@@ -126,27 +120,12 @@ public class ForgeWorld implements World {
         final Location location = player.getLocation();
         final net.minecraft.world.entity.player.Player minecraftPlayer = world.getServer().getPlayerList().getPlayer(player.getUUID());
         if (minecraftPlayer != null) {
-            //noinspection deprecation
-            Registry.SOUND_EVENT.getOptional(ResourceLocation.tryParse(sound)).ifPresent(soundEvent -> world.playSound(minecraftPlayer, location.getX(), location.getY(), location.getZ(), soundEvent, SoundSource.MASTER, 2f, 1f));
+            world.getServer().registryAccess().registry(Registry.SOUND_EVENT_REGISTRY).flatMap(soundEventRegistry -> soundEventRegistry.getOptional(ResourceLocation.tryParse(sound))).ifPresent(soundEvent -> world.playSound(minecraftPlayer, location.getX(), location.getY(), location.getZ(), soundEvent, SoundSource.MASTER, 2f, 1f));
         }
     }
 
     @Override
-    public Optional<Path> getEntitiesDirectory() {
-        return getDirectory("entities");
-    }
-
-    @Override
-    public Optional<Path> getPOIDirectory() {
-        return getDirectory("poi");
-    }
-
-    @Override
-    public Optional<Path> getRegionDirectory() {
-        return getDirectory("region");
-    }
-
-    private Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(final String name) {
         if (name == null) {
             return Optional.empty();
         }

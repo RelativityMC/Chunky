@@ -6,22 +6,21 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.server.ServerLifecycleHooks;
 import org.popcraft.chunky.command.ChunkyCommand;
 import org.popcraft.chunky.command.CommandLiteral;
 import org.popcraft.chunky.command.suggestion.SuggestionProviders;
-import org.popcraft.chunky.listeners.BossBarProgress;
+import org.popcraft.chunky.event.task.GenerationTaskUpdateEvent;
+import org.popcraft.chunky.listeners.bossbar.BossBarTaskUpdateListener;
 import org.popcraft.chunky.platform.ForgeSender;
 import org.popcraft.chunky.platform.ForgeServer;
 import org.popcraft.chunky.platform.Sender;
 import org.popcraft.chunky.platform.impl.GsonConfig;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -43,12 +42,13 @@ public class ChunkyForge {
 
     @SubscribeEvent
     public void onServerStarting(ServerStartingEvent event) {
-        MinecraftServer server = event.getServer();
-        File configFile = new File(event.getServer().getServerDirectory(), "config/chunky.json");
-        this.chunky = new Chunky(new ForgeServer(this, server), new GsonConfig(() -> chunky, configFile));
+        final MinecraftServer server = event.getServer();
+        final Path configPath = event.getServer().getServerDirectory().toPath().resolve("config/chunky.json");
+        this.chunky = new Chunky(new ForgeServer(this, server), new GsonConfig(() -> chunky, configPath));
         if (chunky.getConfig().getContinueOnRestart()) {
             chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), new String[]{});
         }
+        chunky.getEventBus().subscribe(GenerationTaskUpdateEvent.class, new BossBarTaskUpdateListener());
         final LiteralArgumentBuilder<CommandSourceStack> command = literal(CommandLiteral.CHUNKY)
                 .requires(serverCommandSource -> serverCommandSource.hasPermission(2))
                 .executes(context -> {
@@ -77,7 +77,8 @@ public class ChunkyForge {
         registerArguments(command, literal(CommandLiteral.HELP),
                 argument(CommandLiteral.PAGE, integer()));
         registerArguments(command, literal(CommandLiteral.PATTERN),
-                argument(CommandLiteral.PATTERN, string()).suggests(SuggestionProviders.PATTERNS));
+                argument(CommandLiteral.PATTERN, string()).suggests(SuggestionProviders.PATTERNS),
+                argument(CommandLiteral.VALUE, string()));
         registerArguments(command, literal(CommandLiteral.PAUSE),
                 argument(CommandLiteral.WORLD, dimension()));
         registerArguments(command, literal(CommandLiteral.PROGRESS));
@@ -123,16 +124,6 @@ public class ChunkyForge {
     public void onServerStopping(ServerStoppingEvent event) {
         if (chunky != null) {
             chunky.disable();
-        }
-    }
-
-    @SubscribeEvent
-    public void onServerTick(TickEvent.ServerTickEvent event) {
-        if (event.phase == TickEvent.Phase.END) {
-            MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-            if (server != null) {
-                BossBarProgress.tick(chunky, server);
-            }
         }
     }
 

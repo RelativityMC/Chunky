@@ -31,12 +31,12 @@ public class ContinueCommand extends ChunkyCommand {
         } else {
             loadTasks = chunky.getConfig().loadTasks();
         }
-        if (loadTasks.isEmpty()) {
+        if (loadTasks.stream().allMatch(GenerationTask::isCancelled)) {
             sender.sendMessagePrefixed(TranslationKey.FORMAT_CONTINUE_NO_TASKS);
             return;
         }
         final Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
-        loadTasks.forEach(generationTask -> {
+        loadTasks.stream().filter(task -> !task.isCancelled()).forEach(generationTask -> {
             World world = generationTask.getSelection().world();
             if (!generationTasks.containsKey(world.getName())) {
                 generationTasks.put(world.getName(), generationTask);

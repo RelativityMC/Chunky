@@ -32,7 +32,7 @@ public class MixinMinecraftServer {
         }
     }
 
-    @Inject(method = "tick", at = @At("RETURN"))
+    @Inject(method = "runTasksTillTickEnd", at = @At("RETURN"))
     private void onTickEnd(CallbackInfo ci) {
         try {
             ChunkyFabric.SERVER_TICK_END.accept((MinecraftServer) (Object) this);

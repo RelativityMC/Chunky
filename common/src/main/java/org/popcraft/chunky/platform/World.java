@@ -1,7 +1,6 @@
 package org.popcraft.chunky.platform;
 
 import org.popcraft.chunky.platform.util.Location;
-import org.popcraft.chunky.platform.util.Vector3;
 
 import java.nio.file.Path;
 import java.util.Optional;
@@ -10,6 +9,8 @@ import java.util.concurrent.CompletableFuture;
 
 public interface World {
     String getName();
+
+    String getKey();
 
     boolean isChunkGenerated(int x, int z);
 
@@ -29,9 +30,17 @@ public interface World {
 
     void playSound(Player player, String sound);
 
-    Optional<Path> getEntitiesDirectory();
+    Optional<Path> getDirectory(String name);
 
-    Optional<Path> getPOIDirectory();
+    default Optional<Path> getEntitiesDirectory() {
+        return getDirectory("entities");
+    }
 
-    Optional<Path> getRegionDirectory();
+    default Optional<Path> getPOIDirectory() {
+        return getDirectory("poi");
+    }
+
+    default Optional<Path> getRegionDirectory() {
+        return getDirectory("region");
+    }
 }

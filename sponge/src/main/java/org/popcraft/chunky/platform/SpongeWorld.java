@@ -4,7 +4,6 @@ import net.kyori.adventure.key.InvalidKeyException;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
 import org.popcraft.chunky.platform.util.Location;
-import org.popcraft.chunky.platform.util.Vector3;
 import org.spongepowered.api.ResourceKey;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.effect.particle.ParticleEffect;
@@ -32,6 +31,11 @@ public class SpongeWorld implements World {
     @Override
     public String getName() {
         return world.key().asString();
+    }
+
+    @Override
+    public String getKey() {
+        return getName();
     }
 
     @Override
@@ -88,21 +92,7 @@ public class SpongeWorld implements World {
     }
 
     @Override
-    public Optional<Path> getEntitiesDirectory() {
-        return getDirectory("entities");
-    }
-
-    @Override
-    public Optional<Path> getPOIDirectory() {
-        return getDirectory("poi");
-    }
-
-    @Override
-    public Optional<Path> getRegionDirectory() {
-        return getDirectory("region");
-    }
-
-    private Optional<Path> getDirectory(final String name) {
+    public Optional<Path> getDirectory(final String name) {
         if (name == null) {
             return Optional.empty();
         }

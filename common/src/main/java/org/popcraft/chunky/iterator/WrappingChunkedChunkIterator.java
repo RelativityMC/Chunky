@@ -18,6 +18,7 @@ public class WrappingChunkedChunkIterator implements ChunkIterator {
         this.centerChunkX = selection.centerChunkX();
         this.centerChunkZ = selection.centerChunkZ();
         delegatingIterator = ChunkIteratorFactory.getChunkIterator(new Selection(
+                selection.chunky(),
                 selection.world(),
                 0,
                 0,

@@ -8,25 +8,28 @@ import net.fabricmc.api.ModInitializer;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 import org.popcraft.chunky.command.ChunkyCommand;
 import org.popcraft.chunky.command.CommandLiteral;
 import org.popcraft.chunky.command.suggestion.SuggestionProviders;
-import org.popcraft.chunky.listeners.BossBarProgress;
+import org.popcraft.chunky.event.task.GenerationTaskUpdateEvent;
+import org.popcraft.chunky.listeners.bossbar.BossBarTaskUpdateListener;
+import org.popcraft.chunky.platform.FabricPlayer;
 import org.popcraft.chunky.platform.FabricSender;
 import org.popcraft.chunky.platform.FabricServer;
 import org.popcraft.chunky.platform.Sender;
 import org.popcraft.chunky.platform.impl.GsonConfig;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Map;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static com.mojang.brigadier.arguments.IntegerArgumentType.integer;
 import static com.mojang.brigadier.arguments.StringArgumentType.string;
 import static com.mojang.brigadier.arguments.StringArgumentType.word;
 import static net.minecraft.command.argument.DimensionArgumentType.dimension;
+import static net.minecraft.command.argument.EntityArgumentType.player;
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
@@ -41,23 +44,31 @@ public class ChunkyFabric implements ModInitializer {
     @Override
     public void onInitialize() {
         SERVER_STARTED = minecraftServer -> {
-            File configFile = new File(FabricLoader.getInstance().getConfigDir().toFile(), "chunky.json");
-            this.chunky = new Chunky(new FabricServer(this, minecraftServer), new GsonConfig(() -> chunky, configFile));
+            final Path configPath = FabricLoader.getInstance().getConfigDir().resolve("chunky.json");
+            this.chunky = new Chunky(new FabricServer(this, minecraftServer), new GsonConfig(() -> chunky, configPath));
             if (chunky.getConfig().getContinueOnRestart()) {
                 chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), new String[]{});
             }
+            chunky.getEventBus().subscribe(GenerationTaskUpdateEvent.class, new BossBarTaskUpdateListener());
+            FabricLoader.getInstance().getEntrypointContainers("chunky", ModInitializer.class)
+                    .forEach(entryPoint -> entryPoint.getEntrypoint().onInitialize());
         };
         SERVER_STOPPING = minecraftServer -> {
             if (chunky != null) {
                 chunky.disable();
             }
         };
-        SERVER_TICK_END = server -> BossBarProgress.tick(chunky, server);
+//        SERVER_TICK_END = server -> BossBarProgress.tick(chunky, server);
         COMMAND_REGISTER = dispatcher -> {
             final LiteralArgumentBuilder<ServerCommandSource> command = literal(CommandLiteral.CHUNKY)
                     .requires(serverCommandSource -> serverCommandSource.hasPermissionLevel(2))
                     .executes(context -> {
-                        Sender sender = new FabricSender(context.getSource());
+                        final Sender sender;
+                        if (context.getSource().getEntity() instanceof final ServerPlayerEntity player) {
+                            sender = new FabricPlayer(player);
+                        } else {
+                            sender = new FabricSender(context.getSource());
+                        }
                         Map<String, ChunkyCommand> commands = chunky.getCommands();
                         String input = context.getInput().substring(context.getLastChild().getNodes().get(0).getRange().getStart());
                         String[] tokens = input.split(" ");
@@ -82,7 +93,8 @@ public class ChunkyFabric implements ModInitializer {
             registerArguments(command, literal(CommandLiteral.HELP),
                     argument(CommandLiteral.PAGE, integer()));
             registerArguments(command, literal(CommandLiteral.PATTERN),
-                    argument(CommandLiteral.PATTERN, string()).suggests(SuggestionProviders.PATTERNS));
+                    argument(CommandLiteral.PATTERN, string()).suggests(SuggestionProviders.PATTERNS),
+                    argument(CommandLiteral.VALUE, string()));
             registerArguments(command, literal(CommandLiteral.PAUSE),
                     argument(CommandLiteral.WORLD, dimension()));
             registerArguments(command, literal(CommandLiteral.PROGRESS));
@@ -113,6 +125,17 @@ public class ChunkyFabric implements ModInitializer {
             registerArguments(command, literal(CommandLiteral.WORLDBORDER));
             registerArguments(command, literal(CommandLiteral.WORLD),
                     argument(CommandLiteral.WORLD, dimension()));
+            final LiteralArgumentBuilder<ServerCommandSource> borderCommand = literal(CommandLiteral.BORDER)
+                    .requires(serverCommandSource -> chunky.getCommands().containsKey(CommandLiteral.BORDER))
+                    .executes(command.getCommand());
+            registerArguments(borderCommand, literal(CommandLiteral.ADD));
+            registerArguments(borderCommand, literal(CommandLiteral.BYPASS), argument(CommandLiteral.PLAYER, player()));
+            registerArguments(borderCommand, literal(CommandLiteral.HELP));
+            registerArguments(borderCommand, literal(CommandLiteral.LIST));
+            registerArguments(borderCommand, literal(CommandLiteral.LOAD));
+            registerArguments(borderCommand, literal(CommandLiteral.REMOVE));
+            registerArguments(borderCommand, literal(CommandLiteral.WRAP));
+            registerArguments(command, borderCommand);
             dispatcher.register(command);
         };
     }

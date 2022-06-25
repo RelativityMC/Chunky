@@ -1,6 +1,7 @@
 package org.popcraft.chunky.command;
 
 public final class CommandLiteral {
+    public static final String BORDER = "border";
     public static final String CANCEL = "cancel";
     public static final String CENTER = "center";
     public static final String CENTER_X = "centerX";
@@ -33,6 +34,14 @@ public final class CommandLiteral {
     public static final String Z = "z";
     public static final String Z1 = "z1";
     public static final String Z2 = "z2";
+    public static final String ADD = "add";
+    public static final String BYPASS = "bypass";
+    public static final String LIST = "list";
+    public static final String LOAD = "load";
+    public static final String REMOVE = "remove";
+    public static final String WRAP = "wrap";
+    public static final String PLAYER = "player";
+    public static final String VALUE = "value";
 
     private CommandLiteral() {
     }

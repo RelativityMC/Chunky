@@ -1,15 +1,18 @@
 package org.popcraft.chunky.platform;
 
+import com.google.common.reflect.TypeToken;
 import org.popcraft.chunky.ChunkySponge;
 import org.popcraft.chunky.GenerationTask;
 import org.popcraft.chunky.Selection;
 import org.popcraft.chunky.iterator.PatternType;
 import org.popcraft.chunky.shape.ShapeType;
 import org.popcraft.chunky.util.Input;
+import org.popcraft.chunky.util.Parameter;
 import org.popcraft.chunky.util.Translator;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
+import org.spongepowered.configurate.serialize.SerializationException;
 
 import java.io.File;
 import java.io.IOException;
@@ -79,21 +82,19 @@ public class SpongeConfig implements Config {
         if (taskNode.virtual()) {
             return Optional.empty();
         }
-        if (taskNode.node("cancelled").getBoolean(true)) {
-            return Optional.empty();
-        }
+        boolean cancelled = taskNode.node("cancelled").getBoolean(true);
         double radiusX = taskNode.node("radius").getDouble(Selection.DEFAULT_RADIUS);
         double radiusZ = taskNode.node("radiusZ").getDouble(radiusX);
-        Selection.Builder selection = Selection.builder(world)
+        Selection.Builder selection = Selection.builder(plugin.getChunky(), world)
                 .centerX(taskNode.node("centerX").getDouble(Selection.DEFAULT_CENTER_X))
                 .centerZ(taskNode.node("centerZ").getDouble(Selection.DEFAULT_CENTER_Z))
                 .radiusX(radiusX)
                 .radiusZ(radiusZ)
-                .pattern(taskNode.node("iterator").getString(PatternType.CONCENTRIC))
+                .pattern(Parameter.of(taskNode.node("iterator").getString(PatternType.CONCENTRIC)))
                 .shape(taskNode.node("shape").getString(ShapeType.SQUARE));
         long count = taskNode.node("count").getInt(0);
         long time = taskNode.node("time").getInt(0);
-        return Optional.of(new GenerationTask(plugin.getChunky(), selection.build(), count, time));
+        return Optional.of(new GenerationTask(plugin.getChunky(), selection.build(), count, time, cancelled));
     }
 
     @Override
@@ -166,6 +167,38 @@ public class SpongeConfig implements Config {
     @Override
     public boolean getContinueOnRestart() {
         return this.rootNode != null && this.rootNode.node(ROOT_CONFIG_NODE, "continue-on-restart").getBoolean(false);
+    }
+
+    @Override
+    public boolean isSilent() {
+        return this.rootNode != null && this.rootNode.node(ROOT_CONFIG_NODE, "silent").getBoolean(false);
+    }
+
+    @Override
+    public void setSilent(boolean silent) {
+        if (this.rootNode != null) {
+            try {
+                this.rootNode.node(ROOT_CONFIG_NODE, "silent").set(silent);
+            } catch (SerializationException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    public int getUpdateInterval() {
+        return this.rootNode == null ? 1 : this.rootNode.node(ROOT_CONFIG_NODE, "update-interval").getInt(1);
+    }
+
+    @Override
+    public void setUpdateInterval(int updateInterval) {
+        if (this.rootNode != null) {
+            try {
+                this.rootNode.node(ROOT_CONFIG_NODE, "update-interval").set(updateInterval);
+            } catch (SerializationException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override

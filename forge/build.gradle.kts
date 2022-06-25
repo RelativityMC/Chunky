@@ -1,13 +1,13 @@
 plugins {
-    id("dev.architectury.loom") version "0.10.0-SNAPSHOT"
+    id("dev.architectury.loom") version "0.12.0-SNAPSHOT"
 }
 
 val shade: Configuration by configurations.creating
 
 dependencies {
-    minecraft(group = "com.mojang", name = "minecraft", version = "1.18")
+    minecraft(group = "com.mojang", name = "minecraft", version = "1.19")
     mappings(loom.officialMojangMappings())
-    forge(group = "net.minecraftforge", name = "forge", version = "1.18-38.0.5")
+    forge(group = "net.minecraftforge", name = "forge", version = "1.19-41.0.5")
     implementation(project(":chunky-common"))
     shade(project(":chunky-common"))
 }
@@ -48,7 +48,7 @@ tasks {
         archiveFileName.set(null as String?)
     }
     remapJar {
-        input.set(shadowJar.get().archiveFile)
+        inputFile.set(shadowJar.get().archiveFile)
         archiveFileName.set("${rootProject.name.capitalize()}-${project.version}.jar")
     }
 }
