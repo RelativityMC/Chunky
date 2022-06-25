@@ -15,9 +15,4 @@ public interface ThreadedAnvilChunkStorageMixin {
     @Invoker
     public ChunkHolder invokeGetChunkHolder(long pos);
 
-    @Invoker
-    public NbtCompound invokeGetUpdatedChunkNbt(ChunkPos pos);
-
-    @Accessor
-    public Long2ObjectLinkedOpenHashMap<ChunkHolder> getChunksToUnload();
 }
