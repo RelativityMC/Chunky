@@ -1,7 +1,8 @@
 package org.popcraft.chunky.platform;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Registry;
+import net.minecraft.core.Direction;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
@@ -11,6 +12,7 @@ import net.minecraft.server.level.TicketType;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Unit;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkStatus;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.levelgen.Heightmap;
@@ -26,11 +28,11 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class ForgeWorld implements World {
-    private static final TicketType<Unit> CHUNKY = TicketType.create(ChunkyForge.MODID, (unit, unit2) -> 0);
+    private static final TicketType<Unit> CHUNKY = TicketType.create(ChunkyForge.MOD_ID, (unit, unit2) -> 0);
     private final ServerLevel world;
     private final Border worldBorder;
 
-    public ForgeWorld(ServerLevel world) {
+    public ForgeWorld(final ServerLevel world) {
         this.world = world;
         this.worldBorder = new ForgeBorder(world.getWorldBorder());
     }
@@ -46,17 +48,17 @@ public class ForgeWorld implements World {
     }
 
     @Override
-    public boolean isChunkGenerated(int x, int z) {
+    public boolean isChunkGenerated(final int x, final int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).join();
         } else {
             final ChunkPos chunkPos = new ChunkPos(x, z);
-            ChunkMap chunkStorage = world.getChunkSource().chunkMap;
-            ChunkHolder loadedChunkHolder = chunkStorage.getVisibleChunkIfPresent(chunkPos.toLong());
+            final ChunkMap chunkStorage = world.getChunkSource().chunkMap;
+            final ChunkHolder loadedChunkHolder = chunkStorage.getVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLastAvailableStatus() == ChunkStatus.FULL) {
                 return true;
             }
-            ChunkHolder unloadedChunkHolder = chunkStorage.pendingUnloads.get(chunkPos.toLong());
+            final ChunkHolder unloadedChunkHolder = chunkStorage.pendingUnloads.get(chunkPos.toLong());
             if (unloadedChunkHolder != null && unloadedChunkHolder.getLastAvailableStatus() == ChunkStatus.FULL) {
                 return true;
             }
@@ -65,7 +67,7 @@ public class ForgeWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
+    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> getChunkAtAsync(x, z), world.getServer()).join();
         } else {
@@ -104,24 +106,44 @@ public class ForgeWorld implements World {
     }
 
     @Override
-    public int getElevation(int x, int z) {
-        return world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z);
+    public int getElevation(final int x, final int z) {
+        final int height = world.getHeight(Heightmap.Types.MOTION_BLOCKING, x, z) + 1;
+        final int logicalHeight = world.getLogicalHeight();
+        if (height >= logicalHeight) {
+            BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, logicalHeight, z);
+            int air = 0;
+            while (pos.getY() > world.getMinBuildHeight()) {
+                pos = pos.move(Direction.DOWN);
+                final BlockState blockState = world.getBlockState(pos);
+                if (blockState.getMaterial().isSolid() && air > 1) {
+                    return pos.getY() + 1;
+                }
+                air = blockState.isAir() ? air + 1 : 0;
+            }
+        }
+        return height;
     }
 
     @Override
-    public void playEffect(Player player, String effect) {
+    public int getMaxElevation() {
+        return world.getLogicalHeight();
+    }
+
+    @Override
+    public void playEffect(final Player player, final String effect) {
         final Location location = player.getLocation();
         final BlockPos pos = new BlockPos(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> world.levelEvent(eventId, pos, 0));
     }
 
     @Override
-    public void playSound(Player player, String sound) {
+    public void playSound(final Player player, final String sound) {
         final Location location = player.getLocation();
-        final net.minecraft.world.entity.player.Player minecraftPlayer = world.getServer().getPlayerList().getPlayer(player.getUUID());
-        if (minecraftPlayer != null) {
-            world.getServer().registryAccess().registry(Registry.SOUND_EVENT_REGISTRY).flatMap(soundEventRegistry -> soundEventRegistry.getOptional(ResourceLocation.tryParse(sound))).ifPresent(soundEvent -> world.playSound(minecraftPlayer, location.getX(), location.getY(), location.getZ(), soundEvent, SoundSource.MASTER, 2f, 1f));
-        }
+            world.getServer()
+                    .registryAccess()
+                    .registry(Registries.SOUND_EVENT)
+                    .flatMap(soundEventRegistry -> soundEventRegistry.getOptional(ResourceLocation.tryParse(sound)))
+                    .ifPresent(soundEvent -> world.playSound(null, location.getX(), location.getY(), location.getZ(), soundEvent, SoundSource.MASTER, 2f, 1f));
     }
 
     @Override
@@ -129,7 +151,7 @@ public class ForgeWorld implements World {
         if (name == null) {
             return Optional.empty();
         }
-        Path directory = DimensionType.getStorageFolder(world.dimension(), world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
+        final Path directory = DimensionType.getStorageFolder(world.dimension(), world.getServer().getWorldPath(LevelResource.ROOT)).normalize().resolve(name);
         return Files.exists(directory) ? Optional.of(directory) : Optional.empty();
     }
 

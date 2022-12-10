@@ -3,6 +3,8 @@ package org.popcraft.chunky.iterator;
 import org.popcraft.chunky.Selection;
 import org.popcraft.chunky.util.ChunkCoordinate;
 
+import java.util.NoSuchElementException;
+
 public class ConcentricChunkIterator implements ChunkIterator {
     private final int xCenter, zCenter;
     private final int radiusChunks;
@@ -12,7 +14,7 @@ public class ConcentricChunkIterator implements ChunkIterator {
     private int down, left, up, right;
     private boolean hasNext = true;
 
-    public ConcentricChunkIterator(Selection selection, long count) {
+    public ConcentricChunkIterator(final Selection selection, final long count) {
         this(selection);
         if (count <= 0) {
             return;
@@ -40,13 +42,13 @@ public class ConcentricChunkIterator implements ChunkIterator {
         }
     }
 
-    public ConcentricChunkIterator(Selection selection) {
+    public ConcentricChunkIterator(final Selection selection) {
         this.radiusChunks = selection.radiusChunksX();
         this.x = selection.centerChunkX();
         this.z = selection.centerChunkZ();
         this.xCenter = x;
         this.zCenter = z;
-        long diameterChunks = selection.diameterChunksX();
+        final long diameterChunks = selection.diameterChunksX();
         this.total = diameterChunks * diameterChunks;
     }
 
@@ -57,6 +59,9 @@ public class ConcentricChunkIterator implements ChunkIterator {
 
     @Override
     public ChunkCoordinate next() {
+        if (!hasNext) {
+            throw new NoSuchElementException();
+        }
         final ChunkCoordinate chunkCoord = new ChunkCoordinate(x, z);
         if (x == xCenter + annulus && z == zCenter + annulus) {
             ++annulus;

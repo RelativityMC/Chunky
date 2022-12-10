@@ -2,6 +2,7 @@ package org.popcraft.chunky;
 
 import com.google.inject.Inject;
 import org.apache.logging.log4j.Logger;
+import org.popcraft.chunky.command.CommandArguments;
 import org.popcraft.chunky.command.CommandLiteral;
 import org.popcraft.chunky.command.suggestion.SuggestionProviders;
 import org.popcraft.chunky.platform.SpongeConfig;
@@ -26,7 +27,6 @@ import org.spongepowered.plugin.builtin.jvm.Plugin;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Plugin("chunky")
@@ -50,7 +50,7 @@ public class ChunkySponge {
     public void onLoadedGame(final LoadedGameEvent event) {
         this.chunky = new Chunky(new SpongeServer(this), new SpongeConfig(this));
         if (chunky.getConfig().getContinueOnRestart()) {
-            chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), new String[]{});
+            chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), CommandArguments.empty());
         }
     }
 
@@ -63,19 +63,18 @@ public class ChunkySponge {
 
     @Listener
     public void onRegisterCommand(final RegisterCommandEvent<Command.Parameterized> event) {
-        Command.Parameterized cancelCommand = Command.builder()
+        final Command.Parameterized cancelCommand = Command.builder()
                 .permission("chunky.command.cancel")
                 .addParameters(Parameter.world().key(CommandLiteral.WORLD).terminal().build())
                 .terminal(true)
                 .executor(ctx -> {
-                    List<String> args = new ArrayList<>();
-                    args.add(CommandLiteral.CANCEL);
+                    final List<String> args = new ArrayList<>();
                     ctx.one(Parameter.key(CommandLiteral.WORLD, ServerWorld.class)).map(ServerWorld::key).map(ResourceKey::asString).ifPresent(args::add);
                     executeSpongeCommand(ctx, CommandLiteral.CANCEL, args);
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized centerCommand = Command.builder()
+        final Command.Parameterized centerCommand = Command.builder()
                 .permission("chunky.command.center")
                 .addParameters(
                         Parameter.string().key(CommandLiteral.X).terminal().build(),
@@ -83,34 +82,32 @@ public class ChunkySponge {
                 )
                 .terminal(true)
                 .executor(ctx -> {
-                    List<String> args = new ArrayList<>();
-                    args.add(CommandLiteral.CENTER);
+                    final List<String> args = new ArrayList<>();
                     ctx.one(Parameter.key(CommandLiteral.X, String.class)).ifPresent(args::add);
                     ctx.one(Parameter.key(CommandLiteral.Z, String.class)).ifPresent(args::add);
                     executeSpongeCommand(ctx, CommandLiteral.CENTER, args);
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized confirmCommand = Command.builder()
+        final Command.Parameterized confirmCommand = Command.builder()
                 .permission("chunky.command.confirm")
                 .executor(ctx -> {
-                    executeSpongeCommand(ctx, CommandLiteral.CONFIRM, Collections.singletonList(CommandLiteral.CONFIRM));
+                    executeSpongeCommand(ctx, CommandLiteral.CONFIRM, List.of());
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized continueCommand = Command.builder()
+        final Command.Parameterized continueCommand = Command.builder()
                 .permission("chunky.command.continue")
                 .addParameters(Parameter.world().key(CommandLiteral.WORLD).terminal().build())
                 .terminal(true)
                 .executor(ctx -> {
-                    List<String> args = new ArrayList<>();
-                    args.add(CommandLiteral.CONTINUE);
+                    final List<String> args = new ArrayList<>();
                     ctx.one(Parameter.key(CommandLiteral.WORLD, ServerWorld.class)).map(ServerWorld::key).map(ResourceKey::asString).ifPresent(args::add);
                     executeSpongeCommand(ctx, CommandLiteral.CONTINUE, args);
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized cornersCommand = Command.builder()
+        final Command.Parameterized cornersCommand = Command.builder()
                 .permission("chunky.command.corners")
                 .addParameters(
                         Parameter.string().key(CommandLiteral.X1).build(),
@@ -119,8 +116,7 @@ public class ChunkySponge {
                         Parameter.string().key(CommandLiteral.Z2).build()
                 )
                 .executor(ctx -> {
-                    List<String> args = new ArrayList<>();
-                    args.add(CommandLiteral.CORNERS);
+                    final List<String> args = new ArrayList<>();
                     args.add(ctx.requireOne(Parameter.key(CommandLiteral.X1, String.class)));
                     args.add(ctx.requireOne(Parameter.key(CommandLiteral.Z1, String.class)));
                     args.add(ctx.requireOne(Parameter.key(CommandLiteral.X2, String.class)));
@@ -129,111 +125,116 @@ public class ChunkySponge {
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized helpCommand = Command.builder()
+        final Command.Parameterized helpCommand = Command.builder()
                 .permission("chunky.command.help")
                 .addParameters(Parameter.integerNumber().key(CommandLiteral.PAGE).terminal().build())
                 .terminal(true)
                 .executor(ctx -> {
-                    List<String> args = new ArrayList<>();
-                    args.add(CommandLiteral.HELP);
+                    final List<String> args = new ArrayList<>();
                     ctx.one(Parameter.key(CommandLiteral.PAGE, Integer.class)).map(String::valueOf).ifPresent(args::add);
                     executeSpongeCommand(ctx, CommandLiteral.HELP, args);
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized patternCommand = Command.builder()
+        final Command.Parameterized patternCommand = Command.builder()
                 .permission("chunky.command.pattern")
                 .addParameters(
                         Parameter.string().key(CommandLiteral.PATTERN).completer(SuggestionProviders.PATTERNS).terminal().build(),
                         Parameter.string().key(CommandLiteral.VALUE).terminal().build()
                 )
                 .executor(ctx -> {
-                    List<String> args = new ArrayList<>();
-                    args.add(CommandLiteral.PATTERN);
+                    final List<String> args = new ArrayList<>();
                     args.add(ctx.requireOne(Parameter.key(CommandLiteral.PATTERN, String.class)));
                     ctx.one(Parameter.key(CommandLiteral.VALUE, String.class)).ifPresent(args::add);
                     executeSpongeCommand(ctx, CommandLiteral.PATTERN, args);
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized pauseCommand = Command.builder()
+        final Command.Parameterized pauseCommand = Command.builder()
                 .permission("chunky.command.pause")
                 .addParameters(Parameter.world().key(CommandLiteral.WORLD).terminal().build())
                 .terminal(true)
                 .executor(ctx -> {
-                    List<String> args = new ArrayList<>();
-                    args.add(CommandLiteral.PAUSE);
+                    final List<String> args = new ArrayList<>();
                     ctx.one(Parameter.key(CommandLiteral.WORLD, ServerWorld.class)).map(ServerWorld::key).map(ResourceKey::asString).ifPresent(args::add);
                     executeSpongeCommand(ctx, CommandLiteral.PAUSE, args);
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized progressCommand = Command.builder()
+        final Command.Parameterized progressCommand = Command.builder()
                 .permission("chunky.command.progress")
                 .executor(ctx -> {
-                    executeSpongeCommand(ctx, CommandLiteral.PROGRESS, Collections.singletonList(CommandLiteral.PROGRESS));
+                    executeSpongeCommand(ctx, CommandLiteral.PROGRESS, List.of());
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized quietCommand = Command.builder()
+        final Command.Parameterized quietCommand = Command.builder()
                 .permission("chunky.command.quiet")
                 .addParameters(Parameter.integerNumber().key(CommandLiteral.INTERVAL).build())
                 .executor(ctx -> {
-                    List<String> args = new ArrayList<>();
-                    args.add(CommandLiteral.QUIET);
+                    final List<String> args = new ArrayList<>();
                     args.add(String.valueOf(ctx.requireOne(Parameter.key(CommandLiteral.INTERVAL, Integer.class))));
                     executeSpongeCommand(ctx, CommandLiteral.QUIET, args);
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized radiusCommand = Command.builder()
+        final Command.Parameterized radiusCommand = Command.builder()
                 .permission("chunky.command.radius")
                 .addParameters(
                         Parameter.string().key(CommandLiteral.RADIUS_X).terminal().build(),
                         Parameter.string().key(CommandLiteral.RADIUS_Z).terminal().build()
                 )
                 .executor(ctx -> {
-                    List<String> args = new ArrayList<>();
-                    args.add(CommandLiteral.RADIUS);
+                    final List<String> args = new ArrayList<>();
                     args.add(ctx.requireOne(Parameter.key(CommandLiteral.RADIUS_X, String.class)));
                     ctx.one(Parameter.key(CommandLiteral.RADIUS_Z, String.class)).ifPresent(args::add);
                     executeSpongeCommand(ctx, CommandLiteral.RADIUS, args);
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized reloadCommand = Command.builder()
+        final Command.Parameterized reloadCommand = Command.builder()
                 .permission("chunky.command.reload")
+                .addParameters(Parameter.string().key(CommandLiteral.TYPE).terminal().build())
+                .terminal(true)
                 .executor(ctx -> {
-                    executeSpongeCommand(ctx, CommandLiteral.RELOAD, Collections.singletonList(CommandLiteral.RELOAD));
+                    final List<String> args = new ArrayList<>();
+                    ctx.one(Parameter.key(CommandLiteral.TYPE, String.class)).ifPresent(args::add);
+                    executeSpongeCommand(ctx, CommandLiteral.RELOAD, args);
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized shapeCommand = Command.builder()
+        final Command.Parameterized selectionCommand = Command.builder()
+                .permission("chunky.command.selection")
+                .executor(ctx -> {
+                    executeSpongeCommand(ctx, CommandLiteral.SELECTION, List.of());
+                    return CommandResult.success();
+                })
+                .build();
+        final Command.Parameterized shapeCommand = Command.builder()
                 .permission("chunky.command.shape")
                 .addParameters(Parameter.string().key(CommandLiteral.SHAPE).completer(SuggestionProviders.SHAPES).build())
                 .executor(ctx -> {
-                    List<String> args = new ArrayList<>();
-                    args.add(CommandLiteral.SHAPE);
+                    final List<String> args = new ArrayList<>();
                     args.add(ctx.requireOne(Parameter.key(CommandLiteral.SHAPE, String.class)));
                     executeSpongeCommand(ctx, CommandLiteral.SHAPE, args);
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized silentCommand = Command.builder()
+        final Command.Parameterized silentCommand = Command.builder()
                 .permission("chunky.command.silent")
                 .executor(ctx -> {
-                    executeSpongeCommand(ctx, CommandLiteral.SILENT, Collections.singletonList(CommandLiteral.SILENT));
+                    executeSpongeCommand(ctx, CommandLiteral.SILENT, List.of());
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized spawnCommand = Command.builder()
+        final Command.Parameterized spawnCommand = Command.builder()
                 .permission("chunky.command.spawn")
                 .executor(ctx -> {
-                    executeSpongeCommand(ctx, CommandLiteral.SPAWN, Collections.singletonList(CommandLiteral.SPAWN));
+                    executeSpongeCommand(ctx, CommandLiteral.SPAWN, List.of());
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized startCommand = Command.builder()
+        final Command.Parameterized startCommand = Command.builder()
                 .permission("chunky.command.start")
                 .addParameters(
                         Parameter.world().key(CommandLiteral.WORLD).terminal().build(),
@@ -245,8 +246,7 @@ public class ChunkySponge {
                 )
                 .terminal(true)
                 .executor(ctx -> {
-                    List<String> args = new ArrayList<>();
-                    args.add(CommandLiteral.START);
+                    final List<String> args = new ArrayList<>();
                     ctx.one(Parameter.key(CommandLiteral.WORLD, ServerWorld.class)).map(ServerWorld::key).map(ResourceKey::asString).ifPresent(args::add);
                     ctx.one(Parameter.key(CommandLiteral.SHAPE, String.class)).ifPresent(args::add);
                     ctx.one(Parameter.key(CommandLiteral.X, String.class)).ifPresent(args::add);
@@ -257,7 +257,7 @@ public class ChunkySponge {
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized trimCommand = Command.builder()
+        final Command.Parameterized trimCommand = Command.builder()
                 .permission("chunky.command.trim")
                 .addParameters(
                         Parameter.world().key(CommandLiteral.WORLD).terminal().build(),
@@ -269,8 +269,7 @@ public class ChunkySponge {
                 )
                 .terminal(true)
                 .executor(ctx -> {
-                    List<String> args = new ArrayList<>();
-                    args.add(CommandLiteral.TRIM);
+                    final List<String> args = new ArrayList<>();
                     ctx.one(Parameter.key(CommandLiteral.WORLD, ServerWorld.class)).map(ServerWorld::key).map(ResourceKey::asString).ifPresent(args::add);
                     ctx.one(Parameter.key(CommandLiteral.SHAPE, String.class)).ifPresent(args::add);
                     ctx.one(Parameter.key(CommandLiteral.X, String.class)).ifPresent(args::add);
@@ -281,19 +280,18 @@ public class ChunkySponge {
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized worldborderCommand = Command.builder()
+        final Command.Parameterized worldborderCommand = Command.builder()
                 .permission("chunky.command.worldborder")
                 .executor(ctx -> {
-                    executeSpongeCommand(ctx, CommandLiteral.WORLDBORDER, Collections.singletonList(CommandLiteral.WORLDBORDER));
+                    executeSpongeCommand(ctx, CommandLiteral.WORLDBORDER, List.of());
                     return CommandResult.success();
                 })
                 .build();
-        Command.Parameterized worldCommand = Command.builder()
+        final Command.Parameterized worldCommand = Command.builder()
                 .permission("chunky.command.world")
                 .addParameters(Parameter.world().key(CommandLiteral.WORLD).build())
                 .executor(ctx -> {
-                    List<String> args = new ArrayList<>();
-                    args.add(CommandLiteral.WORLD);
+                    final List<String> args = new ArrayList<>();
                     ctx.one(Parameter.key(CommandLiteral.WORLD, ServerWorld.class)).map(ServerWorld::key).map(ResourceKey::asString).ifPresent(args::add);
                     executeSpongeCommand(ctx, CommandLiteral.WORLD, args);
                     return CommandResult.success();
@@ -313,6 +311,7 @@ public class ChunkySponge {
                 .addChild(quietCommand, CommandLiteral.QUIET)
                 .addChild(radiusCommand, CommandLiteral.RADIUS)
                 .addChild(reloadCommand, CommandLiteral.RELOAD)
+                .addChild(selectionCommand, CommandLiteral.SELECTION)
                 .addChild(shapeCommand, CommandLiteral.SHAPE)
                 .addChild(silentCommand, CommandLiteral.SILENT)
                 .addChild(spawnCommand, CommandLiteral.SPAWN)
@@ -321,15 +320,14 @@ public class ChunkySponge {
                 .addChild(worldborderCommand, CommandLiteral.WORLDBORDER)
                 .addChild(worldCommand, CommandLiteral.WORLD)
                 .executor(ctx -> {
-                    executeSpongeCommand(ctx, CommandLiteral.HELP, Collections.emptyList());
+                    executeSpongeCommand(ctx, CommandLiteral.HELP, List.of());
                     return CommandResult.success();
                 })
                 .build(), CommandLiteral.CHUNKY);
     }
 
     private void executeSpongeCommand(final CommandContext ctx, final String command, final List<String> args) {
-        final String[] argsArray = new String[args.size()];
-        chunky.getCommands().get(command).execute(new SpongeSender(ctx.cause().root()), args.toArray(argsArray));
+        chunky.getCommands().get(command).execute(new SpongeSender(ctx.cause().root()), CommandArguments.of(args));
     }
 
     public Chunky getChunky() {

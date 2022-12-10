@@ -6,37 +6,35 @@ import org.popcraft.chunky.shape.ShapeType;
 import org.popcraft.chunky.util.Input;
 import org.popcraft.chunky.util.TranslationKey;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import static org.popcraft.chunky.util.Translator.translate;
 
-public class ShapeCommand extends ChunkyCommand {
-    public ShapeCommand(Chunky chunky) {
-        super(chunky);
+public class ShapeCommand implements ChunkyCommand {
+    private final Chunky chunky;
+
+    public ShapeCommand(final Chunky chunky) {
+        this.chunky = chunky;
     }
 
-    public void execute(Sender sender, String[] args) {
-        if (args.length < 2) {
+    @Override
+    public void execute(final Sender sender, final CommandArguments arguments) {
+        final Optional<String> inputShape = arguments.next().flatMap(Input::tryShape);
+        if (inputShape.isEmpty()) {
             sender.sendMessage(TranslationKey.HELP_SHAPE);
             return;
         }
-        Optional<String> inputShape = Input.tryShape(args[1]);
-        if (!inputShape.isPresent()) {
-            sender.sendMessage(TranslationKey.HELP_SHAPE);
-            return;
-        }
-        String shape = inputShape.get();
+        final String shape = inputShape.get();
         chunky.getSelection().shape(shape);
         sender.sendMessagePrefixed(TranslationKey.FORMAT_SHAPE, translate("shape_" + shape));
     }
 
     @Override
-    public List<String> tabSuggestions(String[] args) {
-        if (args.length == 2) {
-            return ShapeType.ALL;
+    public List<String> suggestions(final CommandArguments arguments) {
+        if (arguments.size() == 1) {
+            return ShapeType.all();
         }
-        return Collections.emptyList();
+        return List.of();
     }
 }

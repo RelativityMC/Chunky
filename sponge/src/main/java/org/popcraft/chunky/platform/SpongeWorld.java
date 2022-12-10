@@ -23,7 +23,7 @@ public class SpongeWorld implements World {
     private final ServerWorld world;
     private final Border worldBorder;
 
-    public SpongeWorld(ServerWorld world) {
+    public SpongeWorld(final ServerWorld world) {
         this.world = world;
         this.worldBorder = new SpongeBorder(world);
     }
@@ -39,12 +39,12 @@ public class SpongeWorld implements World {
     }
 
     @Override
-    public boolean isChunkGenerated(int x, int z) {
+    public boolean isChunkGenerated(final int x, final int z) {
         return world.hasChunk(x, 0, z);
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
+    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
         return CompletableFuture.allOf(CompletableFuture.completedFuture(world.loadChunk(x, 0, z, true)));
     }
 
@@ -60,7 +60,7 @@ public class SpongeWorld implements World {
 
     @Override
     public Location getSpawn() {
-        Vector3i spawn = world.properties().spawnPosition();
+        final Vector3i spawn = world.properties().spawnPosition();
         return new Location(this, spawn.x(), spawn.y(), spawn.z(), 0, 0);
     }
 
@@ -70,25 +70,34 @@ public class SpongeWorld implements World {
     }
 
     @Override
-    public int getElevation(int x, int z) {
-        return world.highestYAt(x, z);
+    public int getElevation(final int x, final int z) {
+        return world.highestYAt(x, z) + 1;
     }
 
     @Override
-    public void playEffect(Player player, String effect) {
+    public int getMaxElevation() {
+        return world.maximumHeight();
+    }
+
+    @Override
+    public void playEffect(final Player player, final String effect) {
         final Location location = player.getLocation();
         final Vector3d vector = Vector3d.from(location.getX(), location.getY(), location.getZ());
         RegistryKey.of(RegistryTypes.PARTICLE_TYPE, ResourceKey.resolve(effect)).asDefaultedReference(Sponge::game).find().ifPresent(particleType -> world.spawnParticles(ParticleEffect.builder().type(particleType).build(), vector));
     }
 
     @Override
-    public void playSound(Player player, String sound) {
-        final Location location = player.getLocation();
+    public void playSound(final Player player, final String sound) {
+        final Key soundKey;
         try {
             //noinspection PatternValidation
-            world.playSound(Sound.sound(Key.key(sound), Sound.Source.MASTER, 2f, 1f), location.getX(), location.getY(), location.getZ());
-        } catch (final InvalidKeyException ignored) {
+            soundKey = Key.key(sound);
+        } catch (final InvalidKeyException e) {
+            return;
         }
+        final Location location = player.getLocation();
+        world.playSound(Sound.sound(soundKey, Sound.Source.MASTER, 2f, 1f), location.getX(), location.getY(), location.getZ());
+
     }
 
     @Override
@@ -96,7 +105,7 @@ public class SpongeWorld implements World {
         if (name == null) {
             return Optional.empty();
         }
-        Path regionDirectory = world.directory().resolve(name);
+        final Path regionDirectory = world.directory().resolve(name);
         return Files.exists(regionDirectory) ? Optional.of(regionDirectory) : Optional.empty();
     }
 

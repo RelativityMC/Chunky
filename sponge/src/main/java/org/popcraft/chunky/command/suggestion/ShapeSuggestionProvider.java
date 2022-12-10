@@ -10,9 +10,9 @@ import java.util.List;
 
 public class ShapeSuggestionProvider implements ValueCompleter {
     @Override
-    public List<CommandCompletion> complete(CommandContext context, String currentInput) {
-        List<CommandCompletion> completions = new ArrayList<>();
-        ShapeType.ALL.forEach(pattern -> {
+    public List<CommandCompletion> complete(final CommandContext context, final String currentInput) {
+        final List<CommandCompletion> completions = new ArrayList<>();
+        ShapeType.all().forEach(pattern -> {
             if (pattern.contains(currentInput.toLowerCase())) {
                 completions.add(CommandCompletion.of(pattern));
             }

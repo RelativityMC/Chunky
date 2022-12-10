@@ -3,6 +3,8 @@ package org.popcraft.chunky.iterator;
 import org.popcraft.chunky.Selection;
 import org.popcraft.chunky.util.ChunkCoordinate;
 
+import java.util.NoSuchElementException;
+
 public class SpiralChunkIterator implements ChunkIterator {
     private static final int RIGHT = 0, DOWN = 1, LEFT = 2, UP = 3;
     private final int stopX, stopZ;
@@ -12,7 +14,7 @@ public class SpiralChunkIterator implements ChunkIterator {
     private int direction;
     private boolean hasNext = true;
 
-    public SpiralChunkIterator(Selection selection, long count) {
+    public SpiralChunkIterator(final Selection selection, final long count) {
         this(selection);
         if (count <= 0) {
             return;
@@ -24,7 +26,7 @@ public class SpiralChunkIterator implements ChunkIterator {
         this.span = diameterFinished;
         this.spanCount = 1;
         this.direction = DOWN;
-        int radiusFinished = diameterFinished / 2;
+        final int radiusFinished = diameterFinished / 2;
         this.x += radiusFinished + 1;
         this.z += radiusFinished;
         long perimeterCount = count - (long) diameterFinished * diameterFinished;
@@ -71,13 +73,13 @@ public class SpiralChunkIterator implements ChunkIterator {
         }
     }
 
-    public SpiralChunkIterator(Selection selection) {
-        int radiusChunks = selection.radiusChunksX();
+    public SpiralChunkIterator(final Selection selection) {
+        final int radiusChunks = selection.radiusChunksX();
         this.x = selection.centerChunkX();
         this.z = selection.centerChunkZ();
         this.stopX = x + radiusChunks;
         this.stopZ = z + radiusChunks;
-        long diameter = selection.diameterChunksX();
+        final long diameter = selection.diameterChunksX();
         this.total = diameter * diameter;
     }
 
@@ -88,6 +90,9 @@ public class SpiralChunkIterator implements ChunkIterator {
 
     @Override
     public ChunkCoordinate next() {
+        if (!hasNext) {
+            throw new NoSuchElementException();
+        }
         final ChunkCoordinate chunkCoord = new ChunkCoordinate(x, z);
         if (x == stopX && z == stopZ) {
             hasNext = false;
@@ -96,21 +101,16 @@ public class SpiralChunkIterator implements ChunkIterator {
             spanCount = 0;
             ++span;
         }
-        switch (direction) {
-            case RIGHT:
-                x += 1;
-                break;
-            case DOWN:
-                z -= 1;
-                break;
-            case LEFT:
-                x -= 1;
-                break;
-            case UP:
-                z += 1;
-                break;
-            default:
-                throw new IllegalStateException("Invalid direction");
+        if (direction == RIGHT) {
+            x += 1;
+        } else if (direction == DOWN) {
+            z -= 1;
+        } else if (direction == LEFT) {
+            x -= 1;
+        } else if (direction == UP) {
+            z += 1;
+        } else {
+            throw new IllegalStateException("Invalid direction");
         }
         ++spanProgress;
         if (spanProgress == span) {

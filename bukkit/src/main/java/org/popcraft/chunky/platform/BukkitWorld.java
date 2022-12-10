@@ -2,7 +2,10 @@ package org.popcraft.chunky.platform;
 
 import io.papermc.lib.PaperLib;
 import org.bukkit.Effect;
+import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.popcraft.chunky.platform.util.Location;
 
 import java.io.IOException;
@@ -18,7 +21,7 @@ public class BukkitWorld implements World {
     private final org.bukkit.World world;
     private final Border worldBorder;
 
-    public BukkitWorld(org.bukkit.World world) {
+    public BukkitWorld(final org.bukkit.World world) {
         this.world = world;
         this.worldBorder = new BukkitBorder(world.getWorldBorder());
     }
@@ -34,7 +37,7 @@ public class BukkitWorld implements World {
     }
 
     @Override
-    public boolean isChunkGenerated(int x, int z) {
+    public boolean isChunkGenerated(final int x, final int z) {
         try {
             return PaperLib.isPaper() && PaperLib.isChunkGenerated(world, x, z);
         } catch (CompletionException e) {
@@ -43,7 +46,7 @@ public class BukkitWorld implements World {
     }
 
     @Override
-    public CompletableFuture<Void> getChunkAtAsync(int x, int z) {
+    public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
         return CompletableFuture.allOf(PaperLib.getChunkAtAsync(world, x, z));
     }
 
@@ -59,7 +62,7 @@ public class BukkitWorld implements World {
 
     @Override
     public Location getSpawn() {
-        org.bukkit.Location spawnLocation = world.getSpawnLocation();
+        final org.bukkit.Location spawnLocation = world.getSpawnLocation();
         return new Location(this, spawnLocation.getX(), spawnLocation.getY(), spawnLocation.getZ(), spawnLocation.getYaw(), spawnLocation.getPitch());
     }
 
@@ -69,28 +72,53 @@ public class BukkitWorld implements World {
     }
 
     @Override
-    public int getElevation(int x, int z) {
-        return world.getHighestBlockYAt(x, z);
+    public int getElevation(final int x, final int z) {
+        final int height = world.getHighestBlockYAt(x, z) + 1;
+        final int logicalHeight = world.getLogicalHeight();
+        if (height >= logicalHeight) {
+            Block block = world.getBlockAt(x, logicalHeight, z);
+            int air = 0;
+            while (block.getY() > world.getMinHeight()) {
+                block = block.getRelative(BlockFace.DOWN);
+                final Material type = block.getType();
+                if (type.isSolid() && air > 1) {
+                    return block.getY() + 1;
+                }
+                air = type.isAir() ? air + 1 : 0;
+            }
+        }
+        return height;
     }
 
     @Override
-    public void playEffect(Player player, String effect) {
-        try {
-            final Location location = player.getLocation();
-            final org.bukkit.Location bukkitLocation = new org.bukkit.Location(world, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
-            world.playEffect(bukkitLocation, Effect.valueOf(effect.toUpperCase()), 0);
-        } catch (IllegalArgumentException ignored) {
-        }
+    public int getMaxElevation() {
+        return world.getLogicalHeight();
     }
 
     @Override
-    public void playSound(Player player, String sound) {
+    public void playEffect(final Player player, final String effect) {
+        final Effect effectType;
         try {
-            final Location location = player.getLocation();
-            final org.bukkit.Location bukkitLocation = new org.bukkit.Location(world, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
-            world.playSound(bukkitLocation, Sound.valueOf(sound.toUpperCase()), 2f, 1f);
-        } catch (IllegalArgumentException ignored) {
+            effectType = Effect.valueOf(effect.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return;
         }
+        final Location location = player.getLocation();
+        final org.bukkit.Location bukkitLocation = new org.bukkit.Location(world, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        world.playEffect(bukkitLocation, effectType, 0);
+    }
+
+    @Override
+    public void playSound(final Player player, final String sound) {
+        final Sound soundType;
+        try {
+            soundType = Sound.valueOf(sound.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return;
+        }
+        final Location location = player.getLocation();
+        final org.bukkit.Location bukkitLocation = new org.bukkit.Location(world, location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
+        world.playSound(bukkitLocation, soundType, 2f, 1f);
     }
 
     @Override

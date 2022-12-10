@@ -12,11 +12,16 @@ public class TranslatorTest {
     @Test
     public void testTranslations() {
         testTranslation("bg");
+        testTranslation("bs");
         testTranslation("cs");
         testTranslation("de");
         testTranslation("en");
         testTranslation("es");
+        testTranslation("fi");
         testTranslation("fr");
+        testTranslation("he");
+        testTranslation("hi");
+        testTranslation("hr");
         testTranslation("it");
         testTranslation("nl");
         testTranslation("no");
@@ -32,7 +37,7 @@ public class TranslatorTest {
         testTranslation("zh_HK");
     }
 
-    private void testTranslation(String language) {
+    private void testTranslation(final String language) {
         setLanguage(language);
         translate(TranslationKey.BORDER_DEPENDENCY_UPDATE);
         translate(TranslationKey.BORDER_LOAD_FAILED);
@@ -69,11 +74,18 @@ public class TranslatorTest {
         translate(TranslationKey.FORMAT_RADIUS, Formatting.number(500));
         translate(TranslationKey.FORMAT_RELOAD);
         translate(TranslationKey.FORMAT_RELOAD_TASKS_RUNNING);
+        translate(TranslationKey.FORMAT_SELECTION);
+        translate(TranslationKey.FORMAT_SELECTION_CENTER, Formatting.number(1), Formatting.number(2));
+        translate(TranslationKey.FORMAT_SELECTION_RADIUS, Formatting.number(500));
+        translate(TranslationKey.FORMAT_SELECTION_RADII, Formatting.number(500), Formatting.number(1000));
+        translate(TranslationKey.FORMAT_SELECTION_SHAPE, "square");
+        translate(TranslationKey.FORMAT_SELECTION_WORLD, "world");
         translate(TranslationKey.FORMAT_SHAPE, "square");
         translate(TranslationKey.FORMAT_SILENT, TranslationKey.ENABLED);
         translate(TranslationKey.FORMAT_START, "world", translate(TranslationKey.SHAPE_SQUARE), Formatting.number(1), Formatting.number(2), "500");
         translate(TranslationKey.FORMAT_START_CONFIRM, "/chunky continue", "chunky confirm");
         translate(TranslationKey.FORMAT_START_DISK, "10.5 GB", "20.5 GB", "/chunky confirm");
+        translate(TranslationKey.FORMAT_START_LIMIT, Formatting.number(10000));
         translate(TranslationKey.FORMAT_STARTED_ALREADY, "world");
         translate(TranslationKey.FORMAT_WORLD, "world");
         translate(TranslationKey.HELP_BORDER);
@@ -90,12 +102,17 @@ public class TranslatorTest {
         translate(TranslationKey.HELP_QUIET);
         translate(TranslationKey.HELP_RADIUS);
         translate(TranslationKey.HELP_RELOAD);
+        translate(TranslationKey.HELP_SELECTION);
         translate(TranslationKey.HELP_SHAPE);
         translate(TranslationKey.HELP_SILENT);
         translate(TranslationKey.HELP_SPAWN);
         translate(TranslationKey.HELP_START);
         translate(TranslationKey.HELP_WORLD);
         translate(TranslationKey.HELP_WORLDBORDER);
+        translate(TranslationKey.PATTERN_CONCENTRIC);
+        translate(TranslationKey.PATTERN_LOOP);
+        translate(TranslationKey.PATTERN_SPIRAL);
+        translate(TranslationKey.PATTERN_CSV);
         translate(TranslationKey.SHAPE_CIRCLE);
         translate(TranslationKey.SHAPE_DIAMOND);
         translate(TranslationKey.SHAPE_ELLIPSE);
@@ -108,6 +125,13 @@ public class TranslatorTest {
         translate(TranslationKey.TASK_DONE, "world", 5000, String.format("%.2f", 50f), "0", "01", "15");
         translate(TranslationKey.TASK_STOPPED, "world");
         translate(TranslationKey.TASK_UPDATE, "world", 5000, String.format("%.2f", 50f), "0", "00", "01", String.format("%.1f", 40f), 70, 70);
+        translate(TranslationKey.WRAP_NONE);
+        translate(TranslationKey.WRAP_DEFAULT);
+        translate(TranslationKey.WRAP_BOTH);
+        translate(TranslationKey.WRAP_RADIAL);
+        translate(TranslationKey.WRAP_X);
+        translate(TranslationKey.WRAP_Z);
+        translate(TranslationKey.WRAP_EARTH);
         translate("prefix");
         translate("null");
     }

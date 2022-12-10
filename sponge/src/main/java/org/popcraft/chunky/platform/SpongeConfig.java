@@ -1,16 +1,9 @@
 package org.popcraft.chunky.platform;
 
-import com.google.common.reflect.TypeToken;
 import org.popcraft.chunky.ChunkySponge;
-import org.popcraft.chunky.GenerationTask;
-import org.popcraft.chunky.Selection;
-import org.popcraft.chunky.iterator.PatternType;
-import org.popcraft.chunky.shape.ShapeType;
 import org.popcraft.chunky.util.Input;
-import org.popcraft.chunky.util.Parameter;
 import org.popcraft.chunky.util.Translator;
 import org.spongepowered.configurate.CommentedConfigurationNode;
-import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 import org.spongepowered.configurate.serialize.SerializationException;
 
@@ -19,9 +12,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
 
 public class SpongeConfig implements Config {
     private static final String CONFIG_FILE = "main.conf";
@@ -30,15 +20,15 @@ public class SpongeConfig implements Config {
     private final HoconConfigurationLoader configLoader;
     private CommentedConfigurationNode rootNode;
 
-    public SpongeConfig(ChunkySponge plugin) {
+    public SpongeConfig(final ChunkySponge plugin) {
         this.plugin = plugin;
-        Path defaultConfigPath = plugin.getConfigPath();
+        final Path defaultConfigPath = plugin.getConfigPath();
         try {
             Files.createDirectories(defaultConfigPath);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        Path defaultConfigFile = new File(defaultConfigPath.toFile(), CONFIG_FILE).toPath();
+        final Path defaultConfigFile = new File(defaultConfigPath.toFile(), CONFIG_FILE).toPath();
         this.configLoader = HoconConfigurationLoader.builder()
                 .path(defaultConfigFile)
                 .build();
@@ -48,13 +38,13 @@ public class SpongeConfig implements Config {
             this.rootNode = configLoader.createNode();
             e.printStackTrace();
         }
-        URL defaults = getClass().getClassLoader().getResource(CONFIG_FILE);
+        final URL defaults = getClass().getClassLoader().getResource(CONFIG_FILE);
         if (defaults != null) {
             final HoconConfigurationLoader defaultConfigLoader = HoconConfigurationLoader.builder()
                     .url(defaults)
                     .build();
             try {
-                CommentedConfigurationNode defaultRootNode = defaultConfigLoader.load();
+                final CommentedConfigurationNode defaultRootNode = defaultConfigLoader.load();
                 rootNode.mergeFrom(defaultRootNode);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -71,84 +61,6 @@ public class SpongeConfig implements Config {
     @Override
     public Path getDirectory() {
         return plugin.getConfigPath();
-    }
-
-    @Override
-    public Optional<GenerationTask> loadTask(World world) {
-        if (this.rootNode == null) {
-            return Optional.empty();
-        }
-        ConfigurationNode taskNode = rootNode.node("tasks", world.getName());
-        if (taskNode.virtual()) {
-            return Optional.empty();
-        }
-        boolean cancelled = taskNode.node("cancelled").getBoolean(true);
-        double radiusX = taskNode.node("radius").getDouble(Selection.DEFAULT_RADIUS);
-        double radiusZ = taskNode.node("radiusZ").getDouble(radiusX);
-        Selection.Builder selection = Selection.builder(plugin.getChunky(), world)
-                .centerX(taskNode.node("centerX").getDouble(Selection.DEFAULT_CENTER_X))
-                .centerZ(taskNode.node("centerZ").getDouble(Selection.DEFAULT_CENTER_Z))
-                .radiusX(radiusX)
-                .radiusZ(radiusZ)
-                .pattern(Parameter.of(taskNode.node("iterator").getString(PatternType.CONCENTRIC)))
-                .shape(taskNode.node("shape").getString(ShapeType.SQUARE));
-        long count = taskNode.node("count").getInt(0);
-        long time = taskNode.node("time").getInt(0);
-        return Optional.of(new GenerationTask(plugin.getChunky(), selection.build(), count, time, cancelled));
-    }
-
-    @Override
-    public List<GenerationTask> loadTasks() {
-        List<GenerationTask> generationTasks = new ArrayList<>();
-        plugin.getChunky().getServer().getWorlds().forEach(world -> loadTask(world).ifPresent(generationTasks::add));
-        return generationTasks;
-    }
-
-    @Override
-    public void saveTask(GenerationTask generationTask) {
-        if (this.rootNode == null) {
-            this.rootNode = configLoader.createNode();
-        }
-        Selection selection = generationTask.getSelection();
-        ConfigurationNode taskNode = rootNode.node("tasks", selection.world().getName());
-        String shape = generationTask.getShape().name();
-        try {
-            taskNode.node("cancelled").set(generationTask.isCancelled());
-            taskNode.node("radius").set(selection.radiusX());
-            if (ShapeType.RECTANGLE.equals(shape) || ShapeType.ELLIPSE.equals(shape)) {
-                taskNode.node("radiusZ").set(selection.radiusZ());
-            }
-            taskNode.node("centerX").set(selection.centerX());
-            taskNode.node("centerZ").set(selection.centerZ());
-            taskNode.node("iterator").set(generationTask.getChunkIterator().name());
-            taskNode.node("shape").set(shape);
-            taskNode.node("count").set(generationTask.getCount());
-            taskNode.node("time").set(generationTask.getTotalTime());
-            configLoader.save(rootNode);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void saveTasks() {
-        plugin.getChunky().getGenerationTasks().values().forEach(this::saveTask);
-    }
-
-    @Override
-    public void cancelTask(World world) {
-        loadTask(world).ifPresent(generationTask -> {
-            generationTask.stop(true);
-            saveTask(generationTask);
-        });
-    }
-
-    @Override
-    public void cancelTasks() {
-        loadTasks().forEach(generationTask -> {
-            generationTask.stop(true);
-            saveTask(generationTask);
-        });
     }
 
     @Override
@@ -170,12 +82,17 @@ public class SpongeConfig implements Config {
     }
 
     @Override
+    public boolean isForceLoadExistingChunks() {
+        return this.rootNode != null && this.rootNode.node(ROOT_CONFIG_NODE, "force-load-existing-chunks").getBoolean(false);
+    }
+
+    @Override
     public boolean isSilent() {
         return this.rootNode != null && this.rootNode.node(ROOT_CONFIG_NODE, "silent").getBoolean(false);
     }
 
     @Override
-    public void setSilent(boolean silent) {
+    public void setSilent(final boolean silent) {
         if (this.rootNode != null) {
             try {
                 this.rootNode.node(ROOT_CONFIG_NODE, "silent").set(silent);
@@ -191,7 +108,7 @@ public class SpongeConfig implements Config {
     }
 
     @Override
-    public void setUpdateInterval(int updateInterval) {
+    public void setUpdateInterval(final int updateInterval) {
         if (this.rootNode != null) {
             try {
                 this.rootNode.node(ROOT_CONFIG_NODE, "update-interval").set(updateInterval);

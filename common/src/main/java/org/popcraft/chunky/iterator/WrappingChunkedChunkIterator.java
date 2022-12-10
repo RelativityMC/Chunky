@@ -49,7 +49,7 @@ public class WrappingChunkedChunkIterator implements ChunkIterator {
         final ChunkCoordinate areaCoordinate = delegatingIterator.next();
         for (int x = 0; x < CHUNK_SIZE; x ++)
             for (int z = 0; z < CHUNK_SIZE; z ++)
-                queue.add(new ChunkCoordinate(areaCoordinate.x * CHUNK_SIZE + x + centerChunkX, areaCoordinate.z * CHUNK_SIZE + z + centerChunkZ));
+                queue.add(new ChunkCoordinate(areaCoordinate.x() * CHUNK_SIZE + x + centerChunkX, areaCoordinate.z() * CHUNK_SIZE + z + centerChunkZ));
     }
 
     @Override

@@ -10,9 +10,12 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import org.popcraft.chunky.command.ChunkyCommand;
+import org.popcraft.chunky.command.CommandArguments;
 import org.popcraft.chunky.command.CommandLiteral;
 import org.popcraft.chunky.command.suggestion.SuggestionProviders;
+import org.popcraft.chunky.event.task.GenerationTaskFinishEvent;
 import org.popcraft.chunky.event.task.GenerationTaskUpdateEvent;
+import org.popcraft.chunky.listeners.bossbar.BossBarTaskFinishListener;
 import org.popcraft.chunky.listeners.bossbar.BossBarTaskUpdateListener;
 import org.popcraft.chunky.platform.FabricPlayer;
 import org.popcraft.chunky.platform.FabricSender;
@@ -44,12 +47,13 @@ public class ChunkyFabric implements ModInitializer {
     @Override
     public void onInitialize() {
         SERVER_STARTED = minecraftServer -> {
-            final Path configPath = FabricLoader.getInstance().getConfigDir().resolve("chunky.json");
-            this.chunky = new Chunky(new FabricServer(this, minecraftServer), new GsonConfig(() -> chunky, configPath));
+            final Path configPath = FabricLoader.getInstance().getConfigDir().resolve("chunky/config.json");
+            this.chunky = new Chunky(new FabricServer(this, minecraftServer), new GsonConfig(configPath));
             if (chunky.getConfig().getContinueOnRestart()) {
-                chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), new String[]{});
+                chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), CommandArguments.empty());
             }
             chunky.getEventBus().subscribe(GenerationTaskUpdateEvent.class, new BossBarTaskUpdateListener());
+            chunky.getEventBus().subscribe(GenerationTaskFinishEvent.class, new BossBarTaskFinishListener());
             FabricLoader.getInstance().getEntrypointContainers("chunky", ModInitializer.class)
                     .forEach(entryPoint -> entryPoint.getEntrypoint().onInitialize());
         };
@@ -69,12 +73,12 @@ public class ChunkyFabric implements ModInitializer {
                         } else {
                             sender = new FabricSender(context.getSource());
                         }
-                        Map<String, ChunkyCommand> commands = chunky.getCommands();
-                        String input = context.getInput().substring(context.getLastChild().getNodes().get(0).getRange().getStart());
-                        String[] tokens = input.split(" ");
-                        String subCommand = tokens.length > 1 && commands.containsKey(tokens[1]) ? tokens[1] : CommandLiteral.HELP;
-                        String[] args = tokens.length > 1 ? Arrays.copyOfRange(tokens, 1, tokens.length) : new String[]{};
-                        commands.get(subCommand).execute(sender, args);
+                        final Map<String, ChunkyCommand> commands = chunky.getCommands();
+                        final String input = context.getInput().substring(context.getLastChild().getNodes().get(0).getRange().getStart());
+                        final String[] tokens = input.split(" ");
+                        final String subCommand = tokens.length > 1 && commands.containsKey(tokens[1]) ? tokens[1] : CommandLiteral.HELP;
+                        final CommandArguments arguments = tokens.length > 2 ? CommandArguments.of(Arrays.copyOfRange(tokens, 2, tokens.length)) : CommandArguments.empty();
+                        commands.get(subCommand).execute(sender, arguments);
                         return Command.SINGLE_SUCCESS;
                     });
             registerArguments(command, literal(CommandLiteral.CANCEL),
@@ -103,7 +107,9 @@ public class ChunkyFabric implements ModInitializer {
             registerArguments(command, literal(CommandLiteral.RADIUS),
                     argument(CommandLiteral.RADIUS, word()),
                     argument(CommandLiteral.RADIUS, word()));
-            registerArguments(command, literal(CommandLiteral.RELOAD));
+            registerArguments(command, literal(CommandLiteral.RELOAD),
+                    argument(CommandLiteral.TYPE, word()));
+            registerArguments(command, literal(CommandLiteral.SELECTION));
             registerArguments(command, literal(CommandLiteral.SHAPE),
                     argument(CommandLiteral.SHAPE, string()).suggests(SuggestionProviders.SHAPES));
             registerArguments(command, literal(CommandLiteral.SILENT));
@@ -126,15 +132,20 @@ public class ChunkyFabric implements ModInitializer {
             registerArguments(command, literal(CommandLiteral.WORLD),
                     argument(CommandLiteral.WORLD, dimension()));
             final LiteralArgumentBuilder<ServerCommandSource> borderCommand = literal(CommandLiteral.BORDER)
-                    .requires(serverCommandSource -> chunky.getCommands().containsKey(CommandLiteral.BORDER))
+                    .requires(serverCommandSource -> chunky != null && chunky.getCommands().containsKey(CommandLiteral.BORDER))
                     .executes(command.getCommand());
-            registerArguments(borderCommand, literal(CommandLiteral.ADD));
-            registerArguments(borderCommand, literal(CommandLiteral.BYPASS), argument(CommandLiteral.PLAYER, player()));
+            registerArguments(borderCommand, literal(CommandLiteral.ADD),
+                    argument(CommandLiteral.WORLD, dimension()));
+            registerArguments(borderCommand, literal(CommandLiteral.BYPASS),
+                    argument(CommandLiteral.PLAYER, player()));
             registerArguments(borderCommand, literal(CommandLiteral.HELP));
             registerArguments(borderCommand, literal(CommandLiteral.LIST));
-            registerArguments(borderCommand, literal(CommandLiteral.LOAD));
-            registerArguments(borderCommand, literal(CommandLiteral.REMOVE));
-            registerArguments(borderCommand, literal(CommandLiteral.WRAP));
+            registerArguments(borderCommand, literal(CommandLiteral.LOAD),
+                    argument(CommandLiteral.WORLD, dimension()));
+            registerArguments(borderCommand, literal(CommandLiteral.REMOVE),
+                    argument(CommandLiteral.WORLD, dimension()));
+            registerArguments(borderCommand, literal(CommandLiteral.WRAP),
+                    argument(CommandLiteral.WRAP, word()));
             registerArguments(command, borderCommand);
             dispatcher.register(command);
         };

@@ -1,9 +1,7 @@
 package org.popcraft.chunky.event.task;
 
 import org.popcraft.chunky.GenerationTask;
+import org.popcraft.chunky.event.Event;
 
-public class GenerationTaskUpdateEvent extends GenerationTaskEvent {
-    public GenerationTaskUpdateEvent(GenerationTask generationTask) {
-        super(generationTask);
-    }
+public record GenerationTaskUpdateEvent(GenerationTask generationTask) implements Event {
 }

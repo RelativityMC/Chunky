@@ -7,26 +7,24 @@ import org.popcraft.chunky.util.Formatting;
 import org.popcraft.chunky.util.Input;
 import org.popcraft.chunky.util.TranslationKey;
 
+import java.util.List;
 import java.util.Optional;
 
-public class CenterCommand extends ChunkyCommand {
-    public CenterCommand(Chunky chunky) {
-        super(chunky);
+public class CenterCommand implements ChunkyCommand {
+    private final Chunky chunky;
+
+    public CenterCommand(final Chunky chunky) {
+        this.chunky = chunky;
     }
 
-    public void execute(Sender sender, String[] args) {
-        Optional<Double> newX = Optional.empty();
-        if (args.length > 1) {
-            newX = Input.tryDoubleSuffixed(args[1]);
-        }
-        Optional<Double> newZ = Optional.empty();
-        if (args.length > 2) {
-            newZ = Input.tryDoubleSuffixed(args[2]);
-        }
+    @Override
+    public void execute(final Sender sender, final CommandArguments arguments) {
+        final Optional<Double> newX = arguments.next().flatMap(Input::tryDoubleSuffixed);
+        final Optional<Double> newZ = arguments.next().flatMap(Input::tryDoubleSuffixed);
         final double centerX;
         final double centerZ;
-        if (!newX.isPresent() && !newZ.isPresent()) {
-            Location coordinate = sender.getLocation();
+        if (newX.isEmpty() && newZ.isEmpty()) {
+            final Location coordinate = sender.getLocation();
             centerX = coordinate.getX();
             centerZ = coordinate.getZ();
         } else if (newX.isPresent() && newZ.isPresent()) {
@@ -42,5 +40,10 @@ public class CenterCommand extends ChunkyCommand {
         }
         chunky.getSelection().center(centerX, centerZ);
         sender.sendMessagePrefixed(TranslationKey.FORMAT_CENTER, Formatting.number(centerX), Formatting.number(centerZ));
+    }
+
+    @Override
+    public List<String> suggestions(final CommandArguments arguments) {
+        return List.of();
     }
 }

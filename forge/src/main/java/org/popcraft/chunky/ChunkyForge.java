@@ -5,16 +5,22 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.server.ServerStartingEvent;
 import net.minecraftforge.event.server.ServerStoppingEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.loading.FMLPaths;
 import org.popcraft.chunky.command.ChunkyCommand;
+import org.popcraft.chunky.command.CommandArguments;
 import org.popcraft.chunky.command.CommandLiteral;
 import org.popcraft.chunky.command.suggestion.SuggestionProviders;
+import org.popcraft.chunky.event.task.GenerationTaskFinishEvent;
 import org.popcraft.chunky.event.task.GenerationTaskUpdateEvent;
+import org.popcraft.chunky.listeners.bossbar.BossBarTaskFinishListener;
 import org.popcraft.chunky.listeners.bossbar.BossBarTaskUpdateListener;
+import org.popcraft.chunky.platform.ForgePlayer;
 import org.popcraft.chunky.platform.ForgeSender;
 import org.popcraft.chunky.platform.ForgeServer;
 import org.popcraft.chunky.platform.Sender;
@@ -31,9 +37,9 @@ import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
 import static net.minecraft.commands.arguments.DimensionArgument.dimension;
 
-@Mod(ChunkyForge.MODID)
+@Mod(ChunkyForge.MOD_ID)
 public class ChunkyForge {
-    public static final String MODID = "chunky";
+    public static final String MOD_ID = "chunky";
     private Chunky chunky;
 
     public ChunkyForge() {
@@ -41,24 +47,30 @@ public class ChunkyForge {
     }
 
     @SubscribeEvent
-    public void onServerStarting(ServerStartingEvent event) {
+    public void onServerStarting(final ServerStartingEvent event) {
         final MinecraftServer server = event.getServer();
-        final Path configPath = event.getServer().getServerDirectory().toPath().resolve("config/chunky.json");
-        this.chunky = new Chunky(new ForgeServer(this, server), new GsonConfig(() -> chunky, configPath));
+        final Path configPath = FMLPaths.CONFIGDIR.get().resolve("chunky/config.json");
+        this.chunky = new Chunky(new ForgeServer(this, server), new GsonConfig(configPath));
         if (chunky.getConfig().getContinueOnRestart()) {
-            chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), new String[]{});
+            chunky.getCommands().get(CommandLiteral.CONTINUE).execute(chunky.getServer().getConsole(), CommandArguments.empty());
         }
         chunky.getEventBus().subscribe(GenerationTaskUpdateEvent.class, new BossBarTaskUpdateListener());
+        chunky.getEventBus().subscribe(GenerationTaskFinishEvent.class, new BossBarTaskFinishListener());
         final LiteralArgumentBuilder<CommandSourceStack> command = literal(CommandLiteral.CHUNKY)
                 .requires(serverCommandSource -> serverCommandSource.hasPermission(2))
                 .executes(context -> {
-                    Sender sender = new ForgeSender(context.getSource());
-                    Map<String, ChunkyCommand> commands = chunky.getCommands();
-                    String input = context.getInput().substring(context.getLastChild().getNodes().get(0).getRange().getStart());
-                    String[] tokens = input.split(" ");
-                    String subCommand = tokens.length > 1 && commands.containsKey(tokens[1]) ? tokens[1] : CommandLiteral.HELP;
-                    String[] args = tokens.length > 1 ? Arrays.copyOfRange(tokens, 1, tokens.length) : new String[]{};
-                    commands.get(subCommand).execute(sender, args);
+                    final Sender sender;
+                    if (context.getSource().getEntity() instanceof final ServerPlayer player) {
+                        sender = new ForgePlayer(player);
+                    } else {
+                        sender = new ForgeSender(context.getSource());
+                    }
+                    final Map<String, ChunkyCommand> commands = chunky.getCommands();
+                    final String input = context.getInput().substring(context.getLastChild().getNodes().get(0).getRange().getStart());
+                    final String[] tokens = input.split(" ");
+                    final String subCommand = tokens.length > 1 && commands.containsKey(tokens[1]) ? tokens[1] : CommandLiteral.HELP;
+                    final CommandArguments arguments = tokens.length > 2 ? CommandArguments.of(Arrays.copyOfRange(tokens, 2, tokens.length)) : CommandArguments.empty();
+                    commands.get(subCommand).execute(sender, arguments);
                     return Command.SINGLE_SUCCESS;
                 });
         registerArguments(command, literal(CommandLiteral.CANCEL),
@@ -87,7 +99,9 @@ public class ChunkyForge {
         registerArguments(command, literal(CommandLiteral.RADIUS),
                 argument(CommandLiteral.RADIUS, word()),
                 argument(CommandLiteral.RADIUS, word()));
-        registerArguments(command, literal(CommandLiteral.RELOAD));
+        registerArguments(command, literal(CommandLiteral.RELOAD),
+                argument(CommandLiteral.TYPE, word()));
+        registerArguments(command, literal(CommandLiteral.SELECTION));
         registerArguments(command, literal(CommandLiteral.SHAPE),
                 argument(CommandLiteral.SHAPE, string()).suggests(SuggestionProviders.SHAPES));
         registerArguments(command, literal(CommandLiteral.SILENT));
@@ -121,7 +135,7 @@ public class ChunkyForge {
     }
 
     @SubscribeEvent
-    public void onServerStopping(ServerStoppingEvent event) {
+    public void onServerStopping(final ServerStoppingEvent event) {
         if (chunky != null) {
             chunky.disable();
         }

@@ -4,7 +4,7 @@ import org.popcraft.chunky.platform.util.Vector2;
 
 import java.util.Optional;
 
-public class ShapeUtil {
+public final class ShapeUtil {
     private ShapeUtil() {
     }
 
@@ -19,7 +19,7 @@ public class ShapeUtil {
      * @param cz Point C z
      * @return Whether point C can be considered inside of line AB.
      */
-    public static boolean insideLine(double ax, double az, double bx, double bz, double cx, double cz) {
+    public static boolean insideLine(final double ax, final double az, final double bx, final double bz, final double cx, final double cz) {
         // Compute whether the point is inside the line using a cross product
         return (bx - ax) * (cz - az) > (bz - az) * (cx - ax);
     }
@@ -37,7 +37,7 @@ public class ShapeUtil {
      * @param l2z2 Line 2 point 2 z
      * @return An optional containing the intersection point, or empty if no intersection.
      */
-    public static Optional<Vector2> intersection(double l1x1, double l1z1, double l1x2, double l1z2, double l2x1, double l2z1, double l2x2, double l2z2) {
+    public static Optional<Vector2> intersection(final double l1x1, final double l1z1, final double l1x2, final double l1z2, final double l2x1, final double l2z1, final double l2x2, final double l2z2) {
         final double a1 = l1z2 - l1z1;
         final double a2 = l2z2 - l2z1;
         final double b1 = l1x1 - l1x2;
@@ -65,9 +65,48 @@ public class ShapeUtil {
      * @param angle   Angle in radians
      * @return The point on the ellipse.
      */
-    public static Vector2 pointOnEllipse(double centerX, double centerZ, double radiusX, double radiusZ, double angle) {
+    public static Vector2 pointOnEllipse(final double centerX, final double centerZ, final double radiusX, final double radiusZ, final double angle) {
         final double x = centerX + radiusX * Math.cos(angle);
         final double z = centerZ + radiusZ * Math.sin(angle);
         return Vector2.of(x, z);
+    }
+
+    /**
+     * Calculate the closest point on a line from a given position.
+     *
+     * @param posX Position x
+     * @param posZ Position z
+     * @param p1x Line point 1 x
+     * @param p1z Line point 1 z
+     * @param p2x Line point 2 x
+     * @param p2z Line point 2 z
+     * @return The closest point to the position on the line.
+     */
+    public static Vector2 closestPointOnLine(final double posX, final double posZ, final double p1x, final double p1z, final double p2x, final double p2z) {
+        final double dx = p2x - p1x;
+        final double dz = p2z - p1z;
+        final double perpendicularSlope = -dx / dz;
+        final double p3x, p3z;
+        if (Double.isInfinite(perpendicularSlope)) {
+            p3x = posX;
+            p3z = posZ + 1;
+        } else {
+            p3x = posX + 1;
+            p3z = posZ + perpendicularSlope;
+        }
+        return ShapeUtil.intersection(p1x, p1z, p2x, p2z, posX, posZ, p3x, p3z).orElseThrow(IllegalStateException::new);
+    }
+
+    /**
+     * Calculate the distance between 2 points.
+     *
+     * @param p1x Point 1 x
+     * @param p1z Point 1 z
+     * @param p2x Point 2 x
+     * @param p2z Point 2 z
+     * @return The distance between the 2 points.
+     */
+    public static double distanceBetweenPoints(final double p1x, final double p1z, final double p2x, final double p2z) {
+        return Math.sqrt(Math.pow(p1x - p2x, 2) + Math.pow(p1z - p2z, 2));
     }
 }

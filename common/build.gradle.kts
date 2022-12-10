@@ -12,4 +12,14 @@ tasks {
             )
         }
     }
+    javadoc {
+        sourceSets {
+            main {
+                allJava
+            }
+        }
+        setDestinationDir(rootProject.projectDir.resolve("docs/chunky/javadoc"))
+        include("org/popcraft/chunky/api/**")
+        exclude("org/popcraft/chunky/api/ChunkyAPIImpl.java")
+    }
 }

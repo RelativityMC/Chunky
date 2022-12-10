@@ -8,28 +8,29 @@ import org.popcraft.chunky.util.Input;
 import org.popcraft.chunky.util.TranslationKey;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-public class ContinueCommand extends ChunkyCommand {
-    public ContinueCommand(Chunky chunky) {
-        super(chunky);
+public class ContinueCommand implements ChunkyCommand {
+    private final Chunky chunky;
+
+    public ContinueCommand(final Chunky chunky) {
+        this.chunky = chunky;
     }
 
-    public void execute(Sender sender, String[] args) {
+    @Override
+    public void execute(final Sender sender, final CommandArguments arguments) {
         final List<GenerationTask> loadTasks;
-        if (args.length > 1) {
-            final Optional<World> world = Input.tryWorld(chunky, String.join(" ", Arrays.copyOfRange(args, 1, args.length)));
-            if (!world.isPresent()) {
+        if (arguments.size() > 0) {
+            final Optional<World> world = Input.tryWorld(chunky, arguments.joined());
+            if (world.isEmpty()) {
                 sender.sendMessage(TranslationKey.HELP_CONTINUE);
                 return;
             }
-            loadTasks = chunky.getConfig().loadTask(world.get()).map(Collections::singletonList).orElse(Collections.emptyList());
+            loadTasks = chunky.getTaskLoader().loadTask(world.get()).map(List::of).orElse(List.of());
         } else {
-            loadTasks = chunky.getConfig().loadTasks();
+            loadTasks = chunky.getTaskLoader().loadTasks();
         }
         if (loadTasks.stream().allMatch(GenerationTask::isCancelled)) {
             sender.sendMessagePrefixed(TranslationKey.FORMAT_CONTINUE_NO_TASKS);
@@ -37,7 +38,7 @@ public class ContinueCommand extends ChunkyCommand {
         }
         final Map<String, GenerationTask> generationTasks = chunky.getGenerationTasks();
         loadTasks.stream().filter(task -> !task.isCancelled()).forEach(generationTask -> {
-            World world = generationTask.getSelection().world();
+            final World world = generationTask.getSelection().world();
             if (!generationTasks.containsKey(world.getName())) {
                 generationTasks.put(world.getName(), generationTask);
                 chunky.getScheduler().runTask(generationTask);
@@ -49,12 +50,12 @@ public class ContinueCommand extends ChunkyCommand {
     }
 
     @Override
-    public List<String> tabSuggestions(String[] args) {
-        if (args.length == 2) {
-            List<String> suggestions = new ArrayList<>();
+    public List<String> suggestions(final CommandArguments arguments) {
+        if (arguments.size() == 1) {
+            final List<String> suggestions = new ArrayList<>();
             chunky.getServer().getWorlds().forEach(world -> suggestions.add(world.getName()));
             return suggestions;
         }
-        return Collections.emptyList();
+        return List.of();
     }
 }

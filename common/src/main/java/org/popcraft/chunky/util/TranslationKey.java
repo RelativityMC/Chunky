@@ -1,6 +1,6 @@
 package org.popcraft.chunky.util;
 
-public class TranslationKey {
+public final class TranslationKey {
     public static final String BORDER_DEPENDENCY_UPDATE = "border_dependency_update";
     public static final String BORDER_LOAD_FAILED = "border_load_failed";
     public static final String BORDER_SAVE_FAILED = "border_save_failed";
@@ -37,6 +37,12 @@ public class TranslationKey {
     public static final String FORMAT_RADIUS = "format_radius";
     public static final String FORMAT_RELOAD = "format_reload";
     public static final String FORMAT_RELOAD_TASKS_RUNNING = "format_reload_tasks_running";
+    public static final String FORMAT_SELECTION = "format_selection";
+    public static final String FORMAT_SELECTION_CENTER = "format_selection_center";
+    public static final String FORMAT_SELECTION_RADII = "format_selection_radii";
+    public static final String FORMAT_SELECTION_RADIUS = "format_selection_radius";
+    public static final String FORMAT_SELECTION_SHAPE = "format_selection_shape";
+    public static final String FORMAT_SELECTION_WORLD = "format_selection_world";
     public static final String FORMAT_SHAPE = "format_shape";
     public static final String FORMAT_SILENT = "format_silent";
     public static final String FORMAT_START = "format_start";
@@ -59,12 +65,17 @@ public class TranslationKey {
     public static final String HELP_QUIET = "help_quiet";
     public static final String HELP_RADIUS = "help_radius";
     public static final String HELP_RELOAD = "help_reload";
+    public static final String HELP_SELECTION = "help_selection";
     public static final String HELP_SHAPE = "help_shape";
     public static final String HELP_SILENT = "help_silent";
     public static final String HELP_SPAWN = "help_spawn";
     public static final String HELP_START = "help_start";
     public static final String HELP_WORLD = "help_world";
     public static final String HELP_WORLDBORDER = "help_worldborder";
+    public static final String PATTERN_CONCENTRIC = "pattern_concentric";
+    public static final String PATTERN_LOOP = "pattern_loop";
+    public static final String PATTERN_SPIRAL = "pattern_spiral";
+    public static final String PATTERN_CSV = "pattern_csv";
     public static final String SHAPE_CIRCLE = "shape_circle";
     public static final String SHAPE_DIAMOND = "shape_diamond";
     public static final String SHAPE_ELLIPSE = "shape_ellipse";
@@ -77,6 +88,13 @@ public class TranslationKey {
     public static final String TASK_DONE = "task_done";
     public static final String TASK_STOPPED = "task_stopped";
     public static final String TASK_UPDATE = "task_update";
+    public static final String WRAP_BOTH = "wrap_both";
+    public static final String WRAP_DEFAULT = "wrap_default";
+    public static final String WRAP_EARTH = "wrap_earth";
+    public static final String WRAP_NONE = "wrap_none";
+    public static final String WRAP_RADIAL = "wrap_radial";
+    public static final String WRAP_X = "wrap_x";
+    public static final String WRAP_Z = "wrap_z";
 
     private TranslationKey() {
     }

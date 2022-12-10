@@ -4,11 +4,11 @@ import org.popcraft.chunky.Selection;
 import org.popcraft.chunky.shape.ShapeType;
 import org.popcraft.chunky.util.Parameter;
 
-public class ChunkIteratorFactory {
+public final class ChunkIteratorFactory {
     private ChunkIteratorFactory() {
     }
 
-    public static ChunkIterator getChunkIterator(Selection selection, long count) {
+    public static ChunkIterator getChunkIterator(final Selection selection, final long count) {
         if (selection.pattern().getType().startsWith("chunked_"))
             return new WrappingChunkedChunkIterator(new Selection(
                     selection.chunky(),
@@ -20,28 +20,19 @@ public class ChunkIteratorFactory {
                     Parameter.of(selection.pattern().getType().substring("chunked_".length()), selection.pattern().getValue().orElse(null)),
                     selection.shape()
             ), count);
-        switch (selection.shape()) {
-            case ShapeType.RECTANGLE:
-            case ShapeType.ELLIPSE:
-            case ShapeType.OVAL:
-                return new Loop2ChunkIterator(selection, count);
-            default:
-                break;
+        final String shape = selection.shape();
+        if (ShapeType.RECTANGLE.equals(shape) || ShapeType.ELLIPSE.equals(shape) || ShapeType.OVAL.equals(shape)) {
+            return new Loop2ChunkIterator(selection, count);
         }
-        switch (selection.pattern().getType()) {
-            case PatternType.LOOP:
-                return new Loop2ChunkIterator(selection, count);
-            case PatternType.SPIRAL:
-                return new SpiralChunkIterator(selection, count);
-            case PatternType.CSV:
-                return new CsvChunkIterator(selection, count);
-            case PatternType.CONCENTRIC:
-            default:
-                return new ConcentricChunkIterator(selection, count);
-        }
+        return switch (selection.pattern().getType()) {
+            case PatternType.LOOP -> new Loop2ChunkIterator(selection, count);
+            case PatternType.SPIRAL -> new SpiralChunkIterator(selection, count);
+            case PatternType.CSV -> new CsvChunkIterator(selection, count);
+            default -> new ConcentricChunkIterator(selection, count);
+        };
     }
 
-    public static ChunkIterator getChunkIterator(Selection selection) {
+    public static ChunkIterator getChunkIterator(final Selection selection) {
         return getChunkIterator(selection, 0);
     }
 }

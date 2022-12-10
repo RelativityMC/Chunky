@@ -1,6 +1,29 @@
 package org.popcraft.chunky;
 
-import org.popcraft.chunky.command.*;
+import org.popcraft.chunky.api.ChunkyAPI;
+import org.popcraft.chunky.api.ChunkyAPIImpl;
+import org.popcraft.chunky.command.CancelCommand;
+import org.popcraft.chunky.command.CenterCommand;
+import org.popcraft.chunky.command.ChunkyCommand;
+import org.popcraft.chunky.command.CommandLiteral;
+import org.popcraft.chunky.command.ConfirmCommand;
+import org.popcraft.chunky.command.ContinueCommand;
+import org.popcraft.chunky.command.CornersCommand;
+import org.popcraft.chunky.command.HelpCommand;
+import org.popcraft.chunky.command.PatternCommand;
+import org.popcraft.chunky.command.PauseCommand;
+import org.popcraft.chunky.command.ProgressCommand;
+import org.popcraft.chunky.command.QuietCommand;
+import org.popcraft.chunky.command.RadiusCommand;
+import org.popcraft.chunky.command.ReloadCommand;
+import org.popcraft.chunky.command.SelectionCommand;
+import org.popcraft.chunky.command.ShapeCommand;
+import org.popcraft.chunky.command.SilentCommand;
+import org.popcraft.chunky.command.SpawnCommand;
+import org.popcraft.chunky.command.StartCommand;
+import org.popcraft.chunky.command.TrimCommand;
+import org.popcraft.chunky.command.WorldBorderCommand;
+import org.popcraft.chunky.command.WorldCommand;
 import org.popcraft.chunky.event.EventBus;
 import org.popcraft.chunky.platform.Config;
 import org.popcraft.chunky.platform.Sender;
@@ -8,6 +31,7 @@ import org.popcraft.chunky.platform.Server;
 import org.popcraft.chunky.util.Input;
 import org.popcraft.chunky.util.PendingAction;
 import org.popcraft.chunky.util.RegionCache;
+import org.popcraft.chunky.util.TaskLoader;
 import org.popcraft.chunky.util.TaskScheduler;
 import org.popcraft.chunky.util.Translator;
 import org.popcraft.chunky.util.Version;
@@ -25,6 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Chunky {
     private final Server server;
     private final Config config;
+    private final TaskLoader taskLoader;
     private final EventBus eventBus;
     private final Selection.Builder selection;
     private final TaskScheduler scheduler = new TaskScheduler();
@@ -34,20 +59,23 @@ public class Chunky {
     private final double limit;
     private final Version version;
     private final Map<String, ChunkyCommand> commands;
+    private final ChunkyAPI api;
 
-    public Chunky(Server server, Config config) {
+    public Chunky(final Server server, final Config config) {
         this.server = server;
         this.config = config;
+        this.taskLoader = new TaskLoader(this);
         this.eventBus = new EventBus();
         this.selection = Selection.builder(this, server.getWorlds().get(0));
         this.limit = loadLimit().orElse(Double.MAX_VALUE);
         this.version = loadVersion();
         this.commands = loadCommands();
+        this.api = new ChunkyAPIImpl(this);
         ChunkyProvider.register(this);
     }
 
     public void disable() {
-        getConfig().saveTasks();
+        taskLoader.saveTasks();
         getGenerationTasks().values().forEach(generationTask -> generationTask.stop(false));
         getScheduler().cancelTasks();
         ChunkyProvider.unregister();
@@ -88,6 +116,7 @@ public class Chunky {
         commandMap.put(CommandLiteral.QUIET, new QuietCommand(this));
         commandMap.put(CommandLiteral.RADIUS, new RadiusCommand(this));
         commandMap.put(CommandLiteral.RELOAD, new ReloadCommand(this));
+        commandMap.put(CommandLiteral.SELECTION, new SelectionCommand(this));
         commandMap.put(CommandLiteral.SHAPE, new ShapeCommand(this));
         commandMap.put(CommandLiteral.SILENT, new SilentCommand(this));
         commandMap.put(CommandLiteral.SPAWN, new SpawnCommand(this));
@@ -110,6 +139,10 @@ public class Chunky {
         return config;
     }
 
+    public TaskLoader getTaskLoader() {
+        return taskLoader;
+    }
+
     public EventBus getEventBus() {
         return eventBus;
     }
@@ -126,17 +159,17 @@ public class Chunky {
         return selection;
     }
 
-    public Optional<Runnable> getPendingAction(Sender sender) {
+    public Optional<Runnable> getPendingAction(final Sender sender) {
         pendingActions.values().removeIf(PendingAction::hasExpired);
-        PendingAction pendingAction = pendingActions.remove(sender.getName());
+        final PendingAction pendingAction = pendingActions.remove(sender.getName());
         return Optional.ofNullable(pendingAction).map(PendingAction::getAction);
     }
 
-    public void setPendingAction(Sender sender, Runnable action) {
+    public void setPendingAction(final Sender sender, final Runnable action) {
         pendingActions.put(sender.getName(), new PendingAction(action));
     }
 
-    public void setLanguage(String language) {
+    public void setLanguage(final String language) {
         Translator.setLanguage(language);
     }
 
@@ -150,5 +183,9 @@ public class Chunky {
 
     public Version getVersion() {
         return version;
+    }
+
+    public ChunkyAPI getApi() {
+        return api;
     }
 }

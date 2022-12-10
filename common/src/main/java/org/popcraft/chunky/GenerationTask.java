@@ -1,5 +1,7 @@
 package org.popcraft.chunky;
 
+import org.popcraft.chunky.api.event.task.GenerationCompleteEvent;
+import org.popcraft.chunky.api.event.task.GenerationProgressEvent;
 import org.popcraft.chunky.event.task.GenerationTaskFinishEvent;
 import org.popcraft.chunky.event.task.GenerationTaskUpdateEvent;
 import org.popcraft.chunky.iterator.ChunkIterator;
@@ -35,7 +37,7 @@ public class GenerationTask implements Runnable {
     private boolean stopped, cancelled;
     private long prevTime;
 
-    public GenerationTask(Chunky chunky, Selection selection, long count, long time, boolean cancelled) {
+    public GenerationTask(final Chunky chunky, final Selection selection, final long count, final long time, final boolean cancelled) {
         this(chunky, selection);
         this.chunkIterator = ChunkIteratorFactory.getChunkIterator(selection, count);
         this.finishedChunks.set(count);
@@ -43,7 +45,7 @@ public class GenerationTask implements Runnable {
         this.prevTime = time;
     }
 
-    public GenerationTask(Chunky chunky, Selection selection) {
+    public GenerationTask(final Chunky chunky, final Selection selection) {
         this.chunky = chunky;
         this.selection = selection;
         this.chunkIterator = ChunkIteratorFactory.getChunkIterator(selection);
@@ -52,7 +54,7 @@ public class GenerationTask implements Runnable {
         this.worldState = chunky.getRegionCache().getWorld(selection.world().getName());
     }
 
-    private void update(int chunkX, int chunkZ, boolean loaded) {
+    private void update(final int chunkX, final int chunkZ, final boolean loaded) {
         if (stopped) {
             return;
         }
@@ -94,6 +96,7 @@ public class GenerationTask implements Runnable {
         progress.seconds = time - progress.hours * 3600 - progress.minutes * 60;
         progress.chunkX = chunkX;
         progress.chunkZ = chunkZ;
+        chunky.getEventBus().call(new GenerationProgressEvent(progress.world, progress.chunkCount, progress.complete, progress.percentComplete, progress.hours, progress.minutes, progress.seconds, progress.rate, progress.chunkX, progress.chunkZ));
         if (progress.complete) {
             progress.sendUpdate(chunky.getServer().getConsole());
             chunky.getEventBus().call(new GenerationTaskUpdateEvent(this));
@@ -118,15 +121,21 @@ public class GenerationTask implements Runnable {
         startTime.set(System.currentTimeMillis());
         while (!stopped && chunkIterator.hasNext()) {
             final ChunkCoordinate chunk = chunkIterator.next();
-            final int chunkCenterX = (chunk.x << 4) + 8;
-            final int chunkCenterZ = (chunk.z << 4) + 8;
-            if (!shape.isBounding(chunkCenterX, chunkCenterZ) || worldState.isGenerated(chunk.x, chunk.z)) {
-                update(chunk.x, chunk.z, false);
+            final int chunkCenterX = (chunk.x() << 4) + 8;
+            final int chunkCenterZ = (chunk.z() << 4) + 8;
+            if (!shape.isBounding(chunkCenterX, chunkCenterZ)) {
+                update(chunk.x(), chunk.z(), false);
                 continue;
             }
-            if (selection.world().isChunkGenerated(chunk.x, chunk.z)) {
-                update(chunk.x, chunk.z, true);
-                continue;
+            if (!chunky.getConfig().isForceLoadExistingChunks()) {
+                if (worldState.isGenerated(chunk.x(), chunk.z())) {
+                    update(chunk.x(), chunk.z(), false);
+                    continue;
+                }
+                if (selection.world().isChunkGenerated(chunk.x(), chunk.z())) {
+                    update(chunk.x(), chunk.z(), true);
+                    continue;
+                }
             }
             {
                 Runnable runnable;
@@ -145,9 +154,9 @@ public class GenerationTask implements Runnable {
                 stop(cancelled);
                 break;
             }
-            selection.world().getChunkAtAsync(chunk.x, chunk.z).whenCompleteAsync((ignored, throwable) -> {
+            selection.world().getChunkAtAsync(chunk.x(), chunk.z()).whenCompleteAsync((ignored, throwable) -> {
                 working.release();
-                tasks.add(() -> update(chunk.x, chunk.z, true));
+                tasks.add(() -> update(chunk.x(), chunk.z(), true));
             });
         }
         if (stopped) {
@@ -161,10 +170,11 @@ public class GenerationTask implements Runnable {
             } while (working.availablePermits() < MAX_WORKING_COUNT);
         }
         update(0, 0, true);
-        chunky.getConfig().saveTask(this);
+        chunky.getTaskLoader().saveTask(this);
         chunky.getGenerationTasks().remove(selection.world().getName());
         Thread.currentThread().setName(poolThreadName);
         chunky.getEventBus().call(new GenerationTaskFinishEvent(this));
+        chunky.getEventBus().call(new GenerationCompleteEvent(selection.world().getName()));
     }
 
     private void pollTasks() {
@@ -216,7 +226,7 @@ public class GenerationTask implements Runnable {
     }
 
     @SuppressWarnings("unused")
-    public static class Progress {
+    public static final class Progress {
         private final String world;
         private long chunkCount;
         private boolean complete;
