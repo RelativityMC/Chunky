@@ -54,7 +54,7 @@ public class FabricWorld implements World {
 
     @Override
     public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
-        return false;
+        return CompletableFuture.completedFuture(false);
 //        if (Thread.currentThread() != serverWorld.getServer().getThread()) {
 //            return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), serverWorld.getServer()).join();
 //        } else {
@@ -143,7 +143,7 @@ public class FabricWorld implements World {
     @Override
     public void playEffect(final Player player, final String effect) {
         final Location location = player.getLocation();
-        final BlockPos pos = new BlockPos(location.getX(), location.getY(), location.getZ());
+        final BlockPos pos = BlockPos.ofFloored(location.getX(), location.getY(), location.getZ());
         Input.tryInteger(effect).ifPresent(eventId -> serverWorld.syncWorldEvent(null, eventId, pos, 0));
     }
 

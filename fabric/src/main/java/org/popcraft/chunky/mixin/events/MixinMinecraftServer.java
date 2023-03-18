@@ -14,7 +14,7 @@ import java.util.function.BooleanSupplier;
 @Mixin(MinecraftServer.class)
 public class MixinMinecraftServer {
 
-    @Inject(method = "runServer", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;setFavicon(Lnet/minecraft/server/ServerMetadata;)V"))
+    @Inject(method = "runServer", at = @At(value = "INVOKE", target = "Lnet/minecraft/server/MinecraftServer;loadFavicon()Ljava/util/Optional;"))
     private void onServerStarted(CallbackInfo ci) {
         try {
             ChunkyFabric.SERVER_STARTED.accept((MinecraftServer) (Object) this);
