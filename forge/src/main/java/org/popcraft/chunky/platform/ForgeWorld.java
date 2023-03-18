@@ -28,7 +28,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class ForgeWorld implements World {
+    private static final int TICKING_LOAD_DURATION = Input.tryInteger(System.getProperty("chunky.tickingLoadDuration")).orElse(0);
     private static final TicketType<Unit> CHUNKY = TicketType.create(ChunkyForge.MOD_ID, (unit, unit2) -> 0);
+    private static final TicketType<Unit> CHUNKY_TICKING = TicketType.create("%s_ticking".formatted(ChunkyForge.MOD_ID), (unit, unit2) -> 0, TICKING_LOAD_DURATION * 20);
     private final ServerLevel world;
     private final Border worldBorder;
 
@@ -48,7 +50,7 @@ public class ForgeWorld implements World {
     }
 
     @Override
-    public boolean isChunkGenerated(final int x, final int z) {
+    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
         if (Thread.currentThread() != world.getServer().getRunningThread()) {
             return CompletableFuture.supplyAsync(() -> isChunkGenerated(x, z), world.getServer()).join();
         } else {
@@ -56,13 +58,13 @@ public class ForgeWorld implements World {
             final ChunkMap chunkStorage = world.getChunkSource().chunkMap;
             final ChunkHolder loadedChunkHolder = chunkStorage.getVisibleChunkIfPresent(chunkPos.toLong());
             if (loadedChunkHolder != null && loadedChunkHolder.getLastAvailableStatus() == ChunkStatus.FULL) {
-                return true;
+                return CompletableFuture.completedFuture(true);
             }
             final ChunkHolder unloadedChunkHolder = chunkStorage.pendingUnloads.get(chunkPos.toLong());
             if (unloadedChunkHolder != null && unloadedChunkHolder.getLastAvailableStatus() == ChunkStatus.FULL) {
-                return true;
+                return CompletableFuture.completedFuture(true);
             }
-            return chunkStorage.readChunk(chunkPos).join().map(chunkNbt -> chunkNbt.contains("Status", 8) && "full".equals(chunkNbt.getString("Status"))).orElse(false);
+            return chunkStorage.readChunk(chunkPos).thenApply(optionalNbt -> optionalNbt.map(chunkNbt -> chunkNbt.contains("Status", 8) && "full".equals(chunkNbt.getString("Status"))).orElse(false));
         }
     }
 
@@ -74,6 +76,9 @@ public class ForgeWorld implements World {
             final ChunkPos chunkPos = new ChunkPos(x, z);
             final ServerChunkCache serverChunkCache = world.getChunkSource();
             serverChunkCache.addRegionTicket(CHUNKY, chunkPos, 0, Unit.INSTANCE);
+            if (TICKING_LOAD_DURATION > 0) {
+                serverChunkCache.addRegionTicket(CHUNKY_TICKING, chunkPos, 1, Unit.INSTANCE);
+            }
             serverChunkCache.runDistanceManagerUpdates();
             final ChunkMap chunkManager = serverChunkCache.chunkMap;
             final ChunkHolder chunkHolder = chunkManager.getVisibleChunkIfPresent(chunkPos.toLong());

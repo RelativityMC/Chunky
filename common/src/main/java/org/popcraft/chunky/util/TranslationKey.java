@@ -28,6 +28,7 @@ public final class TranslationKey {
     public static final String FORMAT_CONTINUE = "format_continue";
     public static final String FORMAT_CONTINUE_NO_TASKS = "format_continue_no_tasks";
     public static final String FORMAT_TRIM_CONFIRM = "format_trim_confirm";
+    public static final String FORMAT_TRIM_CONFIRM_INSIDE = "format_trim_confirm_inside";
     public static final String FORMAT_PATTERN = "format_pattern";
     public static final String FORMAT_PAUSE = "format_pause";
     public static final String FORMAT_PAUSE_NO_TASKS = "format_pause_no_tasks";
@@ -76,6 +77,7 @@ public final class TranslationKey {
     public static final String PATTERN_LOOP = "pattern_loop";
     public static final String PATTERN_SPIRAL = "pattern_spiral";
     public static final String PATTERN_CSV = "pattern_csv";
+    public static final String PATTERN_REGION = "pattern_region";
     public static final String SHAPE_CIRCLE = "shape_circle";
     public static final String SHAPE_DIAMOND = "shape_diamond";
     public static final String SHAPE_ELLIPSE = "shape_ellipse";

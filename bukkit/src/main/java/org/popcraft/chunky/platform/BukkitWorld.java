@@ -6,7 +6,10 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.plugin.java.JavaPlugin;
+import org.popcraft.chunky.ChunkyBukkit;
 import org.popcraft.chunky.platform.util.Location;
+import org.popcraft.chunky.util.Input;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,6 +21,7 @@ import java.util.concurrent.CompletionException;
 import java.util.stream.Stream;
 
 public class BukkitWorld implements World {
+    private static final int TICKING_LOAD_DURATION = Input.tryInteger(System.getProperty("chunky.tickingLoadDuration")).orElse(0);
     private final org.bukkit.World world;
     private final Border worldBorder;
 
@@ -37,17 +41,31 @@ public class BukkitWorld implements World {
     }
 
     @Override
-    public boolean isChunkGenerated(final int x, final int z) {
-        try {
-            return PaperLib.isPaper() && PaperLib.isChunkGenerated(world, x, z);
-        } catch (CompletionException e) {
-            return false;
+    public CompletableFuture<Boolean> isChunkGenerated(final int x, final int z) {
+        if (PaperLib.isPaper()) {
+            return CompletableFuture.supplyAsync(() -> {
+                try {
+                    return PaperLib.isChunkGenerated(world, x, z);
+                } catch (CompletionException e) {
+                    return false;
+                }
+            });
+        } else {
+            return CompletableFuture.completedFuture(false);
         }
     }
 
     @Override
     public CompletableFuture<Void> getChunkAtAsync(final int x, final int z) {
-        return CompletableFuture.allOf(PaperLib.getChunkAtAsync(world, x, z));
+        final CompletableFuture<Void> chunkFuture = CompletableFuture.allOf(PaperLib.getChunkAtAsync(world, x, z));
+        if (TICKING_LOAD_DURATION > 0) {
+            final JavaPlugin plugin = JavaPlugin.getPlugin(ChunkyBukkit.class);
+            chunkFuture.thenAccept(ignored -> {
+                plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> world.addPluginChunkTicket(x, z, plugin));
+                plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> world.removePluginChunkTicket(x, z, plugin), TICKING_LOAD_DURATION * 20L);
+            });
+        }
+        return chunkFuture;
     }
 
     @Override
