@@ -11,7 +11,9 @@ rootProject.name = "chunky"
 
 sequenceOf(
     "common",
-//    "bukkit",
+//    "paper",
+    "folia",
+    "bukkit",
     "fabric",
 //    "forge",
 //    "sponge"
