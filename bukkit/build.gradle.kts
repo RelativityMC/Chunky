@@ -9,7 +9,7 @@ dependencies {
     compileOnly(group = "com.github.Puremin0rez", name = "WorldBorder", version = "1.19") {
         isTransitive = false
     }
-    implementation(group = "org.bstats", name = "bstats-bukkit", version = "3.0.0")
+    implementation(group = "org.bstats", name = "bstats-bukkit", version = "3.0.2")
     implementation(project(":chunky-common"))
     implementation(project(":chunky-paper"))
     implementation(project(":chunky-folia"))
@@ -19,7 +19,7 @@ tasks {
     processResources {
         filesMatching("plugin.yml") {
             expand(
-                "name" to rootProject.name.capitalize(),
+                "name" to project.property("artifactName"),
                 "version" to project.version,
                 "group" to project.group,
                 "author" to project.property("author"),

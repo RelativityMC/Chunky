@@ -21,6 +21,18 @@ public final class Folia {
         Bukkit.getServer().getRegionScheduler().execute(plugin, location, runnable);
     }
 
+    public static void scheduleFixed(final Plugin plugin, final Location location, final Runnable runnable, final long delay, final long period) {
+        Bukkit.getServer().getRegionScheduler().runAtFixedRate(plugin, location, ignored -> runnable.run(), delay, period);
+    }
+
+    public static void scheduleFixedGlobal(final Plugin plugin, final Runnable runnable, final long delay, final long period) {
+        Bukkit.getServer().getGlobalRegionScheduler().runAtFixedRate(plugin, ignored -> runnable.run(), delay, period);
+    }
+
+    public static void cancelTasks(final Plugin plugin) {
+        Bukkit.getServer().getGlobalRegionScheduler().cancelTasks(plugin);
+    }
+
     public static void onServerInit(final Plugin plugin, final Runnable runnable) {
         Bukkit.getPluginManager().registerEvents(new Listener() {
             @EventHandler

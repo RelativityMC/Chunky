@@ -9,6 +9,6 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @Mixin(ThreadedAnvilChunkStorage.class)
 public interface ThreadedAnvilChunkStorageMixin {
     @Invoker
-    public ChunkHolder invokeGetChunkHolder(long pos);
+    public ChunkHolder invokeGetCurrentChunkHolder(long pos);
 
 }

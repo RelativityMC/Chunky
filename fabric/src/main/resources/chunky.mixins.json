@@ -6,6 +6,7 @@
   "mixins": [
     "ServerChunkManagerMixin",
     "ThreadedAnvilChunkStorageMixin",
+    "events.MixinChunkTicketManager",
     "events.MixinCommandManager",
     "events.MixinMinecraftServer"
   ],
